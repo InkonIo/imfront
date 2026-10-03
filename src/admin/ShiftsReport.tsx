@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import AuthImage from '../inside/AuthImage'
-import { DAY_PART_LABEL, FLAG_META, SHIFT_ROLE_LABEL } from '../types'
-import type { ItemReport, ShiftReport, ShiftSummary } from '../types'
+import { DAY_PART_LABEL, FLAG_META, SEVERITY_TONE, SHIFT_ROLE_LABEL } from '../types'
+import type { Flag, ItemReport, ShiftReport, ShiftSummary } from '../types'
 import { Modal, errorText } from './ui'
 
 const ZONE = 'Asia/Almaty'
@@ -15,7 +15,25 @@ function hm(iso: string | null) {
   return iso ? new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: ZONE }) : null
 }
 
+function fmtMin(min: number) {
+  return min < 60 ? `${min} мин` : `${Math.floor(min / 60)} ч ${min % 60} мин`
+}
+
 const pct = (a: number, b: number) => (b ? Math.round((a * 100) / b) : 0)
+
+function FlagChip({ f, extra }: { f: Flag; extra?: string }) {
+  const meta = FLAG_META[f.type]
+  const reviewed =
+    f.reviewStatus === 'CONFIRMED' ? ' · ✔ нарушение' : f.reviewStatus === 'DISMISSED' ? ' · снят' : ''
+  const tone = f.reviewStatus === 'DISMISSED' ? 'info' : SEVERITY_TONE[f.severity]
+  return (
+    <span className={`meta-chip flag-${tone}`} title={f.details ?? ''}>
+      {meta.icon} {meta.label}
+      {extra ?? ''}
+      {reviewed}
+    </span>
+  )
+}
 
 // ================= список смен за день =================
 
@@ -97,6 +115,7 @@ export default function ShiftsReport({ onOpenLog }: { onOpenLog: (shiftId: numbe
               </span>
               <span>⚠️ {s.problems}</span>
               <span>📸 {s.photos}</span>
+              <span title="Активное время на сайте">🟢 {fmtMin(s.activeMin)}</span>
               <span className={s.flagged ? 'text-danger' : ''}>🚩 {s.flagged}</span>
             </div>
           </button>
@@ -210,11 +229,30 @@ function ShiftReportView({
             <span className="stat-value">{s.photos}</span>
           </div>
           <div className="stat">
-            <span className="muted small">С флагами 🚩</span>
+            <span className="muted small">На сайте</span>
+            <span className="stat-value">{fmtMin(s.activeMin)}</span>
+          </div>
+          <div className="stat">
+            <span className="muted small">Флаги 🚩</span>
             <span className={s.flagged ? 'stat-value text-danger' : 'stat-value'}>{s.flagged}</span>
           </div>
         </div>
       </div>
+
+      {report.shiftFlags.length > 0 && (
+        <div className="panel">
+          <h2>🚩 По смене в целом</h2>
+          <ul className="shift-flag-list">
+            {report.shiftFlags.map((f) => (
+              <li key={f.id}>
+                <FlagChip f={f} />
+                <span className="muted small">{hm(f.createdAt)}</span>
+                {f.details && <span>{f.details}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <label className="check">
         <input type="checkbox" checked={onlyMarked} onChange={(e) => setOnlyMarked(e.target.checked)} />
@@ -253,8 +291,9 @@ const STATUS_VIEW: Record<string, { icon: string; label: string }> = {
 }
 
 function ReportItem({ i, onPhoto }: { i: ItemReport; onPhoto: (url: string) => void }) {
-  const danger = i.flags.some((f) => FLAG_META[f].tone === 'danger')
+  const danger = i.flags.some((f) => f.severity === 'HIGH')
   const st = STATUS_VIEW[i.status]
+  const itemFlags = i.flags.filter((f) => f.photoId === null)
 
   return (
     <div className={`item-card report ${i.status.toLowerCase()} ${danger ? 'flag-danger' : ''}`}>
@@ -280,13 +319,10 @@ function ReportItem({ i, onPhoto }: { i: ItemReport; onPhoto: (url: string) => v
         {i.directorReview && <span className="meta-chip">👁 на проверку</span>}
       </div>
 
-      {i.flags.length > 0 && (
+      {itemFlags.length > 0 && (
         <div className="item-meta">
-          {i.flags.map((f) => (
-            <span key={f} className={`meta-chip flag-${FLAG_META[f].tone}`}>
-              {FLAG_META[f].icon} {FLAG_META[f].label}
-              {f === 'LATE' && i.lateMin ? ` на ${i.lateMin} мин` : ''}
-            </span>
+          {itemFlags.map((f) => (
+            <FlagChip key={f.id} f={f} extra={f.type === 'LATE' && i.lateMin ? ` на ${i.lateMin} мин` : ''} />
           ))}
         </div>
       )}
@@ -295,14 +331,30 @@ function ReportItem({ i, onPhoto }: { i: ItemReport; onPhoto: (url: string) => v
 
       {i.photos.length > 0 && (
         <div className="photo-strip">
-          {i.photos.map((ph) => (
-            <div key={ph.id} className="thumb-wrap">
-              <AuthImage src={ph.url} className="thumb" onClick={() => onPhoto(ph.url)} />
-              <span className="thumb-time">{hm(ph.uploadedAt)}</span>
-            </div>
-          ))}
+          {i.photos.map((ph) => {
+            const pf = i.flags.filter((f) => f.photoId === ph.id)
+            return (
+              <div key={ph.id} className={pf.length ? 'thumb-wrap flagged' : 'thumb-wrap'}>
+                <AuthImage src={ph.url} className="thumb" onClick={() => onPhoto(ph.url)} />
+                <span className="thumb-time">{hm(ph.uploadedAt)}</span>
+                {pf.length > 0 && (
+                  <span className="thumb-flag" title={pf.map((f) => f.details ?? '').join('\n')}>
+                    {pf.map((f) => FLAG_META[f.type].icon).join('')}
+                  </span>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
+
+      {i.flags
+        .filter((f) => f.photoId !== null && f.details)
+        .map((f) => (
+          <div key={f.id} className="muted small">
+            {FLAG_META[f.type].icon} {f.details}
+          </div>
+        ))}
     </div>
   )
 }

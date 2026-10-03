@@ -1,27 +1,47 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import AuditHub from '../admin/AuditHub'
 import { useAuth } from '../auth'
-import ReviewQueue from '../review/ReviewQueue'
-import AuditHub from './AuditHub'
-import CitiesPage from './CitiesPage'
-import OutletsPage from './OutletsPage'
-import UsersPage from './UsersPage'
-import './admin.css'
+import ReviewQueue from './ReviewQueue'
+import { reviewApi } from './api'
+import type { ReviewSummary } from './types'
+import '../admin/admin.css'
+import '../inside/inside.css'
+import './review.css'
 
-type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities'
+type SectionId = 'review' | 'audit'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
-  { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
-  { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
-  { id: 'users', icon: '👥', label: 'Пользователи', hint: 'Менеджеры, роли и доступ к точкам' },
-  { id: 'outlets', icon: '📍', label: 'Точки', hint: 'Заведения, адреса, включение и выключение' },
-  { id: 'cities', icon: '🏙️', label: 'Города', hint: 'Справочник городов' },
+  { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
+  { id: 'audit', icon: '📜', label: 'Смены и журнал', hint: 'Отчёты по сменам, фото, история действий' },
 ]
 
-export default function AdminLayout({ onExit }: { onExit: () => void }) {
+export default function DirectorLayout() {
   const { user, logout } = useAuth()
   const [active, setActive] = useState<SectionId>('review')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [summary, setSummary] = useState<ReviewSummary | null>(null)
+
+  // счётчик в левой панели обновляется раз в минуту
+  useEffect(() => {
+    let cancelled = false
+    const load = () =>
+      reviewApi
+        .summary()
+        .then((s) => {
+          if (!cancelled) setSummary(s)
+        })
+        .catch(() => {})
+    void load()
+    const timer = setInterval(load, 60_000)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
+
   const current = SECTIONS.find((s) => s.id === active) ?? SECTIONS[0]
+  const pending = summary ? summary.openFlags + summary.awaitingItems : 0
+  const outlets = user?.outlets ?? []
 
   function go(id: SectionId) {
     setActive(id)
@@ -36,14 +56,17 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         <div className="side-brand">
           <div className="logo">IM</div>
           <div>
-            <div className="name">Настройки</div>
+            <div className="name">Директор</div>
             <div className="muted small">{user?.fullName}</div>
           </div>
         </div>
 
         <div className="side-shift">
-          <span>⚙️ Панель суперадмина</span>
-          <span className="muted">Изменения сразу видны всем</span>
+          {outlets.length === 0 ? (
+            <span className="text-danger">За тобой не закреплены точки</span>
+          ) : (
+            outlets.map((o) => <span key={o.id}>📍 {o.name}</span>)
+          )}
         </div>
 
         <nav className="side-nav">
@@ -55,14 +78,12 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
             >
               <span className="nav-icon">{s.icon}</span>
               {s.label}
+              {s.id === 'review' && pending > 0 && <span className="nav-badge alert">{pending}</span>}
             </button>
           ))}
         </nav>
 
         <div className="side-foot">
-          <button className="btn" onClick={onExit}>
-            ← Вернуться к работе
-          </button>
           <button className="btn ghost small" onClick={logout}>
             Выйти
           </button>
@@ -82,11 +103,8 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
           </div>
         </header>
 
-        {current.id === 'review' && <ReviewQueue />}
+        {current.id === 'review' && <ReviewQueue onSummary={setSummary} />}
         {current.id === 'audit' && <AuditHub />}
-        {current.id === 'users' && <UsersPage />}
-        {current.id === 'outlets' && <OutletsPage />}
-        {current.id === 'cities' && <CitiesPage />}
       </main>
     </div>
   )

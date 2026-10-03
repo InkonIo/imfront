@@ -1,75 +1,33 @@
-# React + TypeScript + Vite
+Как работает:
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Инсайд входит и выбирает точку, роль и утро/вечер. Создаётся смена, к ней прикрепляется чек-лист из ТЗ на сегодняшний день недели.
+Каждое действие записывается в журнал с серверным временем, устройством и IP. Журнал нельзя изменить или удалить даже из базы.
+Длинные пункты (норма от 10 минут) работают как «▶ Начать» → «✓ Готово», сервер засекает реальное время. Пункты «с 22:00» раньше времени не закрыть, а закрытый пункт можно вернуть только в течение 5 минут.
+Фото снимается с камеры, без него обязательные пункты не закрываются. Удалить фото у закрытого пункта нельзя.
 
-Currently, two official plugins are available:
+Как понять, что инсайд реально работал (⚙️ Настройки → 📜 Аудит → 🗓️ Смены → открыть смену):
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Время. По каждому пункту видно «▶ 08:02 → ✓ 08:29, 27 мин из 30». Если вышло «2 мин из 30», значит пункт прокликан.
+Флаги. ⚡ досрочно (меньше 30% нормы), ⏰ опоздание к сроку, ⏭️ пропущен, ❌ не выполнен к концу смены. У смены есть общий счётчик 🚩.
+Фото. У каждого пункта видны снимки с временем загрузки, по клику открываются крупно.
+Устройство. В журнале у каждого телефона свой цвет. Если смену вели с двух разных устройств, это сразу видно.
+Журнал смены. Полная хронология: вход, старт, каждый пункт, каждое фото, проблемы с комментариями, завершение.
 
-## React Compiler
+ЭТО ВСЕ БЫЛО СДЕЛАНО ЗА ВЕЧЕР 02.10.2026.
+commit  "web for inside" за 02.10 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+начинаю делать: 
+Что ещё не сделано (важно для записи):
 
-## Expanding the ESLint configuration
+Директор пока ничего не получает. Флаги видны только в аудите, и смотреть их сейчас может только суперадмин. Уведомления директору будут через Telegram-бота (с фото и кнопками «принять / неправильно»), а у самого директора появится своя панель.
+Пока нет: детектора «пачкой закрыл 8 пунктов за минуту», проверки старых и повторных фото, учёта активного времени на сайте, геолокации, баллов и подиума.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+это будет коммитом за 03.10.2026 
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Из того списка сделан шаг 1, детектор флагов:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+✅ Пачкой. 5+ пунктов за минуту дают флаг 🌀.
+✅ Старые фото. Дата съёмки берётся из EXIF или из файла. Если снимку больше 15 минут, ставится 🕰️.
+✅ Повторные фото. У каждого файла считается отпечаток (хеш). Если такой уже загружался, ставится 👯.
+✅ Активное время на сайте. Сигнал «я тут» раз в минуту, в отчёте видно «🟢 N мин», при паузе 2+ часа ставится 💤.
+✅ Бонусом: 📱 другое устройство посреди смены. Все флаги теперь сохраняются в базе в момент действия, в журнале есть фильтр «Флаги». 

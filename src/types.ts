@@ -1,3 +1,5 @@
+// ================= базовое =================
+
 export type AccountRole = 'SUPER_ADMIN' | 'DIRECTOR' | 'MANAGER'
 export type ShiftRole = 'INSIDE' | 'PRODUCTION_MANAGER' | 'SERVICE_MANAGER'
 export type DayPart = 'MORNING' | 'EVENING'
@@ -54,6 +56,8 @@ export const DAY_PART_LABEL: Record<DayPart, string> = {
   EVENING: 'Вечер',
 }
 
+// ================= админка =================
+
 export interface City {
   id: number
   name: string
@@ -95,6 +99,8 @@ export const ACCOUNT_ROLE_LABEL: Record<AccountRole, string> = {
   MANAGER: 'Менеджер',
 }
 
+// ================= чек-лист =================
+
 export type PhotoMode = 'NONE' | 'REQUIRED' | 'ON_PROBLEM'
 export type RunItemStatus = 'PENDING' | 'DONE' | 'PROBLEM' | 'SKIPPED'
 
@@ -134,6 +140,8 @@ export interface Checklist {
   items: RunItem[]
 }
 
+// ================= аудит: журнал =================
+
 export type AuditEventType =
   | 'LOGIN'
   | 'LOGIN_FAILED'
@@ -148,6 +156,11 @@ export type AuditEventType =
   | 'ITEM_REOPENED'
   | 'PHOTO_UPLOADED'
   | 'PHOTO_DELETED'
+  | 'FLAG_RAISED'
+  | 'FLAG_CONFIRMED'
+  | 'FLAG_DISMISSED'
+  | 'ITEM_APPROVED'
+  | 'ITEM_REJECTED'
   | 'USER_CREATED'
   | 'USER_UPDATED'
   | 'USER_DELETED'
@@ -202,21 +215,64 @@ export const AUDIT_META: Record<AuditEventType, { icon: string; label: string; t
   ITEM_REOPENED: { icon: '↩️', label: 'Вернул пункт', tone: 'warn' },
   PHOTO_UPLOADED: { icon: '📸', label: 'Фото' },
   PHOTO_DELETED: { icon: '🗑️', label: 'Удалил фото', tone: 'warn' },
+  FLAG_RAISED: { icon: '🚩', label: 'Флаг', tone: 'danger' },
+  FLAG_CONFIRMED: { icon: '🚩', label: 'Нарушение подтверждено', tone: 'danger' },
+  FLAG_DISMISSED: { icon: '👌', label: 'Флаг снят', tone: 'ok' },
+  ITEM_APPROVED: { icon: '✅', label: 'Директор принял', tone: 'ok' },
+  ITEM_REJECTED: { icon: '❌', label: 'Директор отклонил', tone: 'danger' },
   USER_CREATED: { icon: '👤', label: 'Создал пользователя' },
   USER_UPDATED: { icon: '✏️', label: 'Изменил пользователя' },
   USER_DELETED: { icon: '❌', label: 'Удалил пользователя', tone: 'danger' },
   USER_PASSWORD_RESET: { icon: '🔑', label: 'Сбросил пароль', tone: 'warn' },
   CATALOG_CHANGED: { icon: '🏙️', label: 'Изменил справочник' },
 }
+// ================= аудит: флаги и отчёты по сменам =================
 
-export type ItemFlag = 'TOO_FAST' | 'SLOW' | 'LATE' | 'SKIPPED' | 'NOT_DONE'
+export type FlagType =
+  | 'TOO_FAST'
+  | 'SLOW'
+  | 'LATE'
+  | 'SKIPPED'
+  | 'NOT_DONE'
+  | 'BURST'
+  | 'OLD_PHOTO'
+  | 'DUPLICATE_PHOTO'
+  | 'DEVICE_SWITCH'
+  | 'IDLE_LONG'
+  | 'REJECTED'
 
-export const FLAG_META: Record<ItemFlag, { icon: string; label: string; tone: 'danger' | 'warn' }> = {
-  TOO_FAST: { icon: '⚡', label: 'досрочно', tone: 'danger' },
-  SLOW: { icon: '🐢', label: 'дольше нормы', tone: 'warn' },
-  LATE: { icon: '⏰', label: 'опоздание', tone: 'warn' },
-  SKIPPED: { icon: '⏭️', label: 'пропущен', tone: 'warn' },
-  NOT_DONE: { icon: '❌', label: 'не выполнен', tone: 'danger' },
+export type FlagSeverity = 'HIGH' | 'MEDIUM' | 'LOW'
+export type ReviewStatus = 'OPEN' | 'CONFIRMED' | 'DISMISSED'
+
+export interface Flag {
+  id: number
+  type: FlagType
+  severity: FlagSeverity
+  details: string | null
+  createdAt: string
+  runItemId: number | null
+  photoId: number | null
+  reviewStatus: ReviewStatus
+}
+
+export const FLAG_META: Record<FlagType, { icon: string; label: string }> = {
+  TOO_FAST: { icon: '⚡', label: 'досрочно' },
+  SLOW: { icon: '🐢', label: 'дольше нормы' },
+  LATE: { icon: '⏰', label: 'опоздание' },
+  SKIPPED: { icon: '⏭️', label: 'пропущен' },
+  NOT_DONE: { icon: '❌', label: 'не выполнен' },
+  BURST: { icon: '🌀', label: 'пачкой' },
+  OLD_PHOTO: { icon: '🕰️', label: 'старое фото' },
+  DUPLICATE_PHOTO: { icon: '👯', label: 'повтор фото' },
+  DEVICE_SWITCH: { icon: '📱', label: 'другое устройство' },
+  IDLE_LONG: { icon: '💤', label: 'нет активности' },
+  REJECTED: { icon: '🙅', label: 'отклонено директором' },
+}
+
+export const SEVERITY_TONE: Record<FlagSeverity, 'danger' | 'warn' | 'info'> = {
+  HIGH: 'danger',
+  MEDIUM: 'warn',
+  LOW: 'info',
 }
 
 export interface ShiftSummary {
@@ -236,6 +292,7 @@ export interface ShiftSummary {
   problems: number
   photos: number
   flagged: number
+  activeMin: number
 }
 
 export interface ItemReport {
@@ -254,11 +311,12 @@ export interface ItemReport {
   comment: string | null
   photoMode: PhotoMode
   directorReview: boolean
-  flags: ItemFlag[]
+  flags: Flag[]
   photos: ChecklistPhoto[]
 }
 
 export interface ShiftReport {
   shift: ShiftSummary
+  shiftFlags: Flag[]
   items: ItemReport[]
 }

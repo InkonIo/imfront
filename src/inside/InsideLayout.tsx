@@ -5,6 +5,7 @@ import { DAY_PART_LABEL } from '../types'
 import type { Checklist } from '../types'
 import { DailyPage, InventoryPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
 import { DAILY_SECTION, pct } from './utils'
+import NotificationBell from '../notify/NotificationBell'
 import './inside.css'
 
 type SectionId = 'route' | 'daily' | 'problems' | 'inventory' | 'summary'
@@ -39,6 +40,20 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
   useEffect(() => {
     void load()
   }, [load])
+
+    // сигнал «я тут»: раз в минуту, пока вкладка видна
+  useEffect(() => {
+    const beat = () => {
+      if (document.visibilityState === 'visible') void api.ping().catch(() => {})
+    }
+    beat()
+    const timer = setInterval(beat, 60_000)
+    document.addEventListener('visibilitychange', beat)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', beat)
+    }
+  }, [])
 
   if (!shift) return null
 
@@ -84,98 +99,120 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
   const pageProps = { shift, checklist: checklist ?? null, onChange: setChecklist }
 
   return (
-    <div className="layout">
-      <div className={menuOpen ? 'overlay show' : 'overlay'} onClick={() => setMenuOpen(false)} />
+  <div className="layout">
+    <div
+      className={menuOpen ? 'overlay show' : 'overlay'}
+      onClick={() => setMenuOpen(false)}
+    />
 
-      <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
-        <div className="side-brand">
-          <div className="logo">IM</div>
-          <div>
-            <div className="name">Инсайд</div>
-            <div className="muted small">{user?.fullName}</div>
-          </div>
+    <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
+
+      <div className="side-brand">
+        <div className="logo">IM</div>
+        <div>
+          <div className="name">Инсайд</div>
+          <div className="muted small">{user?.fullName}</div>
         </div>
 
-        <div className="side-shift">
-          <span>📍 {shift.outletName}</span>
-          <span className="muted">
-            {shift.dayPart === 'MORNING' ? '🌅' : '🌙'} {DAY_PART_LABEL[shift.dayPart]} · с {started}
-          </span>
-        </div>
+        <NotificationBell />
+      </div>
 
-        {checklist && (
-          <div className="side-progress">
-            <div className="panel-row">
-              <span className="muted">Маршрут</span>
-              <strong>{p}%</strong>
-            </div>
-            <div className="progress">
-              <span style={{ width: `${p}%` }} />
-            </div>
+      <div className="side-shift">
+        <span>📍 {shift.outletName}</span>
+        <span className="muted">
+          {shift.dayPart === 'MORNING' ? '🌅' : '🌙'}{' '}
+          {DAY_PART_LABEL[shift.dayPart]} · с {started}
+        </span>
+      </div>
+
+      {checklist && (
+        <div className="side-progress">
+          <div className="panel-row">
+            <span className="muted">Маршрут</span>
+            <strong>{p}%</strong>
           </div>
+
+          <div className="progress">
+            <span style={{ width: `${p}%` }} />
+          </div>
+        </div>
+      )}
+
+      <nav className="side-nav">
+        {sections.map((s) => (
+          <button
+            key={s.id}
+            className={s.id === current.id ? 'nav-item active' : 'nav-item'}
+            onClick={() => go(s.id)}
+          >
+            <span className="nav-icon">{s.icon}</span>
+            {s.label}
+            {badge(s.id)}
+          </button>
+        ))}
+      </nav>
+
+      <div className="side-foot">
+        {onOpenSettings && (
+          <button className="btn" onClick={onOpenSettings}>
+            ⚙️ Настройки
+          </button>
         )}
 
-        <nav className="side-nav">
-          {sections.map((s) => (
-            <button
-              key={s.id}
-              className={s.id === current.id ? 'nav-item active' : 'nav-item'}
-              onClick={() => go(s.id)}
-            >
-              <span className="nav-icon">{s.icon}</span>
-              {s.label}
-              {badge(s.id)}
-            </button>
-          ))}
-        </nav>
+        {error && <div className="error">{error}</div>}
 
-        <div className="side-foot">
-          {onOpenSettings && (
-            <button className="btn" onClick={onOpenSettings}>
-              ⚙️ Настройки
-            </button>
-          )}
-          {error && <div className="error">{error}</div>}
-          <button className="btn danger" onClick={finish} disabled={busy}>
-            Завершить смену
-          </button>
-          <button className="btn ghost small" onClick={logout}>
-            Выйти
+        <button
+          className="btn danger"
+          onClick={finish}
+          disabled={busy}
+        >
+          Завершить смену
+        </button>
+
+        <button className="btn ghost small" onClick={logout}>
+          Выйти
+        </button>
+      </div>
+    </aside>
+
+    <main className="content">
+      <header className="content-head">
+        <button
+          className="burger"
+          onClick={() => setMenuOpen(true)}
+          aria-label="Меню"
+        >
+          ☰
+        </button>
+
+        <h1>
+          {current.icon} {current.label}
+        </h1>
+      </header>
+
+      {checklist === undefined && !loadError && (
+        <div className="muted">Загружаем чек-лист…</div>
+      )}
+
+      {loadError && (
+        <div className="page">
+          <div className="error">{loadError}</div>
+          <button className="btn" onClick={() => void load()}>
+            Повторить
           </button>
         </div>
-      </aside>
+      )}
 
-      <main className="content">
-        <header className="content-head">
-          <button className="burger" onClick={() => setMenuOpen(true)} aria-label="Меню">
-            ☰
-          </button>
-          <h1>
-            {current.icon} {current.label}
-          </h1>
-        </header>
-
-        {checklist === undefined && !loadError && <div className="muted">Загружаем чек-лист…</div>}
-
-        {loadError && (
-          <div className="page">
-            <div className="error">{loadError}</div>
-            <button className="btn" onClick={() => void load()}>
-              Повторить
-            </button>
-          </div>
-        )}
-
-        {checklist !== undefined && !loadError && (
-          <>
-            {current.id === 'route' && <RoutePage {...pageProps} />}
-            {current.id === 'daily' && <DailyPage {...pageProps} />}
-            {current.id === 'problems' && <ProblemsPage {...pageProps} />}
-            {current.id === 'inventory' && <InventoryPage {...pageProps} />}
-            {current.id === 'summary' && <SummaryPage {...pageProps} />}
-          </>
-        )}
-      </main>
-    </div>
+      {checklist !== undefined && !loadError && (
+        <>
+          {current.id === 'route' && <RoutePage {...pageProps} />}
+          {current.id === 'daily' && <DailyPage {...pageProps} />}
+          {current.id === 'problems' && <ProblemsPage {...pageProps} />}
+          {current.id === 'inventory' && <InventoryPage {...pageProps} />}
+          {current.id === 'summary' && <SummaryPage {...pageProps} />}
+        </>
+      )}
+    </main>
+  </div>
   )
 }

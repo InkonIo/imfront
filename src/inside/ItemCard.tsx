@@ -4,7 +4,8 @@ import { api } from '../api'
 import { Modal } from '../admin/ui'
 import type { Checklist, RunItem, RunItemStatus } from '../types'
 import AuthImage from './AuthImage'
-import { compressImage, fmtTime, isOverdue, timingLabel } from './utils'
+import CameraModal, { cameraSupported } from './CameraModal'
+import { compressImage, fmtTime, isOverdue, readTakenAt, timingLabel } from './utils'
 
 const EARLY_GRACE_MS = 5 * 60_000
 
@@ -36,6 +37,7 @@ export default function ItemCard({
   const [problemOpen, setProblemOpen] = useState(false)
   const [comment, setComment] = useState(item.comment ?? '')
   const [viewer, setViewer] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const pending = item.status === 'PENDING'
@@ -78,6 +80,12 @@ export default function ItemCard({
     }
   }
 
+  /** Встроенная камера, если доступна, иначе системная камера телефона. */
+  function openCamera() {
+    if (cameraSupported()) setCameraOpen(true)
+    else fileRef.current?.click()
+  }
+
   function start() {
     if (tooEarly) {
       setError(`Ещё рано: пункт доступен с ${fmtTime(item.dueFrom)}`)
@@ -93,7 +101,7 @@ export default function ItemCard({
     }
     if (needsPhoto) {
       setError('Сначала сделай фото 📸')
-      fileRef.current?.click()
+      openCamera()
       return
     }
     if (running && item.durationMin) {
@@ -124,6 +132,12 @@ export default function ItemCard({
     if (ok) setProblemOpen(false)
   }
 
+  /** Снимок со встроенной камеры: время съёмки = сейчас. */
+  function uploadShot(blob: Blob) {
+    return run(() => api.uploadPhoto(item.id, blob, 'photo.jpg', Date.now()))
+  }
+
+  /** Запасной путь: системная камера через input. */
   async function onFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 5)
     e.target.value = ''
@@ -131,15 +145,24 @@ export default function ItemCard({
     await run(async () => {
       let result: Checklist | null = null
       for (const f of files) {
+        const takenAt = await readTakenAt(f) // до сжатия, пока EXIF на месте
         const blob = await compressImage(f)
-        result = await api.uploadPhoto(item.id, blob, blob === f ? f.name : 'photo.jpg')
+        result = await api.uploadPhoto(item.id, blob, blob === f ? f.name : 'photo.jpg', takenAt)
       }
       if (!result) throw new Error('Нет файлов')
       return result
     })
   }
 
-  const mark = notStarted ? '▶' : item.status === 'DONE' ? '✓' : item.status === 'PROBLEM' ? '!' : item.status === 'SKIPPED' ? '–' : ''
+  const mark = notStarted
+    ? '▶'
+    : item.status === 'DONE'
+      ? '✓'
+      : item.status === 'PROBLEM'
+        ? '!'
+        : item.status === 'SKIPPED'
+          ? '–'
+          : ''
   const cls = [
     'item-card',
     item.status.toLowerCase(),
@@ -250,8 +273,8 @@ export default function ItemCard({
           </button>
         )}
         {showPhotoBtn && (
-          <button className="btn small" onClick={() => fileRef.current?.click()} disabled={busy}>
-            📷 Фото
+          <button className="btn small" onClick={openCamera} disabled={busy}>
+            📷 Снять
           </button>
         )}
         {pending && !problemOpen && (
@@ -290,7 +313,20 @@ export default function ItemCard({
 
       {error && <div className="error item-error">{error}</div>}
 
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple hidden onChange={onFiles} />
+      {/* запасной вариант: системная камера телефона */}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" hidden onChange={onFiles} />
+
+      {cameraOpen && (
+        <CameraModal
+          title={item.title}
+          onClose={() => setCameraOpen(false)}
+          onShot={uploadShot}
+          onFallback={() => {
+            setCameraOpen(false)
+            fileRef.current?.click()
+          }}
+        />
+      )}
 
       {viewer && (
         <Modal title="Фото" onClose={() => setViewer(null)}>

@@ -1,0 +1,71 @@
+.review-group {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.review-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card-2);
+  border-bottom: 1px solid var(--line);
+}
+.review-flag-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.review-flag-row:last-child {
+  border-bottom: 0;
+}
+.review-flag-main {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+.review-flag-row .photo-strip,
+.item-card.report .problem-box {
+  margin-left: 0;
+}
+.nav-badge.alert {
+  background: var(--danger);
+  color: #fff;
+}
+.reason-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.reason-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-btn {
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}

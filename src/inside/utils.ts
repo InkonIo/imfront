@@ -71,3 +71,64 @@ export async function compressImage(file: File, maxSide = 1600, quality = 0.82):
     URL.revokeObjectURL(url)
   }
 }
+
+/** Когда снято фото: EXIF DateTimeOriginal, иначе дата файла. */
+export async function readTakenAt(file: File): Promise<number> {
+  try {
+    const exif = await readExifDate(file)
+    if (exif) return exif
+  } catch {
+    // битый EXIF не повод падать
+  }
+  return file.lastModified
+}
+
+async function readExifDate(file: File): Promise<number | null> {
+  if (!/jpe?g/i.test(file.type)) return null
+  const v = new DataView(await file.slice(0, 256 * 1024).arrayBuffer())
+  if (v.byteLength < 4 || v.getUint16(0) !== 0xffd8) return null
+  let off = 2
+  while (off + 4 <= v.byteLength) {
+    const marker = v.getUint16(off)
+    if ((marker & 0xff00) !== 0xff00) return null
+    const size = v.getUint16(off + 2)
+    if (marker === 0xffe1 && off + 10 <= v.byteLength && v.getUint32(off + 4) === 0x45786966) {
+      return parseTiffDate(v, off + 10) // после "Exif\0\0"
+    }
+    off += 2 + size
+  }
+  return null
+}
+
+function parseTiffDate(v: DataView, start: number): number | null {
+  if (start + 8 > v.byteLength) return null
+  const little = v.getUint16(start) === 0x4949
+  const u16 = (o: number) => v.getUint16(start + o, little)
+  const u32 = (o: number) => v.getUint32(start + o, little)
+
+  const findTag = (ifd: number, tag: number): number | null => {
+    if (start + ifd + 2 > v.byteLength) return null
+    const count = u16(ifd)
+    for (let i = 0; i < count; i++) {
+      const e = ifd + 2 + i * 12
+      if (start + e + 12 > v.byteLength) return null
+      if (u16(e) === tag) return e
+    }
+    return null
+  }
+
+  const ifd0 = u32(4)
+  const exifPtr = findTag(ifd0, 0x8769)
+  let entry = exifPtr !== null ? findTag(u32(exifPtr + 8), 0x9003) : null // DateTimeOriginal
+  if (entry === null) entry = findTag(ifd0, 0x0132) // DateTime
+  if (entry === null) return null
+
+  const valueOff = u32(entry + 8)
+  if (start + valueOff + 19 > v.byteLength) return null
+  let s = ''
+  for (let i = 0; i < 19; i++) s += String.fromCharCode(v.getUint8(start + valueOff + i))
+  const m = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(s)
+  if (!m) return null
+  const t = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime()
+  return Number.isFinite(t) ? t : null
+}

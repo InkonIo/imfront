@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { DAY_PART_LABEL, SHIFT_ROLE_LABEL } from '../types'
 import type { DayPart, Outlet, ShiftRole } from '../types'
+import NotificationBell from '../notify/NotificationBell'
 
 const ROLES: { value: ShiftRole; icon: string; hint: string }[] = [
   { value: 'INSIDE', icon: '🧭', hint: 'Контроль зала и кухни по маршруту' },
@@ -75,6 +76,7 @@ export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void
           <div className="name">{user?.fullName}</div>
         </div>
         <div className="topbar-actions">
+          <NotificationBell />
           {onOpenSettings && (
             <button className="btn ghost small" onClick={onOpenSettings}>
               ⚙️ Настройки

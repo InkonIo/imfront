@@ -1,0 +1,69 @@
+.bell {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 18px;
+  cursor: pointer;
+}
+.bell:hover {
+  border-color: var(--accent);
+}
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.side-brand .bell {
+  margin-left: auto;
+}
+.notify-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.notify-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line);
+  border-radius: 12px;
+  background: var(--card-2);
+}
+.notify-item.violation,
+.notify-item.item_rejected {
+  border-left-color: var(--danger);
+}
+.notify-item.item_approved {
+  border-left-color: var(--ok);
+}
+.notify-item.unread {
+  background: var(--accent-soft);
+}
+.notify-title {
+  font-weight: 700;
+}
+.notify-body {
+  font-size: 14px;
+  white-space: pre-line;
+}

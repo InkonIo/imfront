@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { AUDIT_META } from '../types'
+import { ACCOUNT_ROLE_LABEL, AUDIT_META, DAY_PART_LABEL, FLAG_META, SHIFT_ROLE_LABEL } from '../types'
 import type { AuditEvent, AuditEventType, AuditQuery } from '../types'
 import { errorText, useList } from './ui'
 
@@ -12,6 +12,8 @@ const GROUPS: { label: string; types: AuditEventType[] }[] = [
   { label: 'Смены', types: ['SHIFT_STARTED', 'SHIFT_FINISHED'] },
   { label: 'Чек-лист', types: ['ITEM_STARTED', 'ITEM_DONE', 'ITEM_PROBLEM', 'ITEM_SKIPPED', 'ITEM_REOPENED'] },
   { label: 'Фото', types: ['PHOTO_UPLOADED', 'PHOTO_DELETED'] },
+  { label: 'Флаги', types: ['FLAG_RAISED'] },
+  { label: 'Проверка директором', types: ['FLAG_CONFIRMED', 'FLAG_DISMISSED', 'ITEM_APPROVED', 'ITEM_REJECTED'] },
   {
     label: 'Админка',
     types: ['USER_CREATED', 'USER_UPDATED', 'USER_DELETED', 'USER_PASSWORD_RESET', 'CATALOG_CHANGED'],
@@ -55,6 +57,34 @@ function deviceColor(id: string | null) {
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360
   return `hsl(${h} 70% 50%)`
+}
+
+/** Коды из базы → русский текст. В базе остаются коды (удобно для аналитики), на экране перевод. */
+const STATUS_RU: Record<string, string> = {
+  DONE: 'сделано',
+  PROBLEM: 'проблема',
+  SKIPPED: 'пропущено',
+  PENDING: 'не закрыт',
+}
+
+const DICT: Record<string, string> = {
+  ...Object.fromEntries(Object.entries(FLAG_META).map(([code, m]) => [code, `${m.icon} ${m.label}`])),
+  ...SHIFT_ROLE_LABEL,
+  ...DAY_PART_LABEL,
+  ...ACCOUNT_ROLE_LABEL,
+  ...STATUS_RU,
+}
+
+// длинные коды первыми, чтобы PRODUCTION_MANAGER не превратился в «PRODUCTION_Менеджер»
+const CODE_RE = new RegExp(
+  `\\b(${Object.keys(DICT)
+    .sort((a, b) => b.length - a.length)
+    .join('|')})\\b`,
+  'g',
+)
+
+function ru(text: string) {
+  return text.replace(CODE_RE, (code) => DICT[code] ?? code)
 }
 
 export default function AuditPage({ initialShiftId = null }: { initialShiftId?: number | null }) {
@@ -225,7 +255,7 @@ function AuditRow({
           {name && e.userLogin && <span className="muted small">@{e.userLogin}</span>}
           <span className="audit-label">{meta.label}</span>
         </div>
-        {e.details && <div className="audit-details">{e.details}</div>}
+        {e.details && <div className="audit-details">{ru(e.details)}</div>}
         <div className="audit-meta">
           <span>
             🕒 {showDate ? `${day} ` : ''}

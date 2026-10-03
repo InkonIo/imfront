@@ -54,7 +54,7 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {}
   if (!(init.body instanceof FormData)) headers['Content-Type'] = 'application/json'
   const token = tokenStore.get()
@@ -86,7 +86,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return data as T
 }
 
-const send = (method: string, body?: unknown): RequestInit => ({
+export const send = (method: string, body?: unknown): RequestInit => ({
   method,
   body: body === undefined ? undefined : JSON.stringify(body),
 })
@@ -104,15 +104,17 @@ export const api = {
   currentShift: () => request<Shift | undefined>('/api/shifts/current'),
   startShift: (body: StartShiftBody) => request<Shift>('/api/shifts/start', send('POST', body)),
   finishShift: () => request<Shift>('/api/shifts/finish', send('POST')),
+  ping: () => request<void>('/api/activity/ping', send('POST')),
 
   // ---------- checklist ----------
   checklistCurrent: () => request<Checklist | undefined>('/api/checklist/current'),
   startRunItem: (id: number) => request<Checklist>(`/api/checklist/items/${id}/start`, send('POST')),
   updateRunItem: (id: number, status: RunItemStatus, comment?: string) =>
     request<Checklist>(`/api/checklist/items/${id}`, send('PUT', { status, comment: comment ?? null })),
-  uploadPhoto: (id: number, file: Blob, fileName: string) => {
+    uploadPhoto: (id: number, file: Blob, fileName: string, takenAt?: number) => {
     const body = new FormData()
     body.append('file', file, fileName)
+    if (takenAt !== undefined) body.append('takenAt', String(Math.round(takenAt)))
     return request<Checklist>(`/api/checklist/items/${id}/photos`, { method: 'POST', body })
   },
   deletePhoto: (photoId: number) => request<Checklist>(`/api/checklist/photos/${photoId}`, send('DELETE')),

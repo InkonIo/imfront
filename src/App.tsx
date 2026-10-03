@@ -8,6 +8,7 @@ import Wizard from './screens/Wizard'
 import Home from './screens/Home'
 import InsideLayout from './inside/InsideLayout'
 import AdminLayout from './admin/AdminLayout'
+import DirectorLayout from './review/DirectorLayout'
 
 function Centered({ children }: { children: ReactNode }) {
   return (
@@ -24,6 +25,7 @@ export default function App() {
   if (loading) return <Centered><div className="muted">Загрузка…</div></Centered>
   if (!user) return <Login />
   if (user.mustChangePassword) return <Centered><ChangePassword /></Centered>
+  if (user.accountRole === 'DIRECTOR') return <DirectorLayout />
 
   const isAdmin = user.accountRole === 'SUPER_ADMIN'
   const openSettings = isAdmin ? () => setView('settings') : undefined

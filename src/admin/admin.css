@@ -489,3 +489,36 @@ input:disabled,
 .section-head.static {
   cursor: default;
 }
+
+.meta-chip.flag-info {
+  background: var(--card-2);
+  color: var(--muted);
+  font-weight: 600;
+}
+.shift-flag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+.shift-flag-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.thumb-wrap.flagged .thumb {
+  border: 2px solid var(--danger);
+}
+.thumb-flag {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  padding: 1px 3px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+}
