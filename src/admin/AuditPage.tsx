@@ -16,7 +16,7 @@ const GROUPS: { label: string; types: AuditEventType[] }[] = [
   { label: 'Проверка директором', types: ['FLAG_CONFIRMED', 'FLAG_DISMISSED', 'ITEM_APPROVED', 'ITEM_REJECTED'] },
   {
     label: 'Админка',
-    types: ['USER_CREATED', 'USER_UPDATED', 'USER_DELETED', 'USER_PASSWORD_RESET', 'CATALOG_CHANGED'],
+    types: ['USER_CREATED', 'USER_UPDATED', 'USER_DELETED', 'USER_PASSWORD_RESET', 'CATALOG_CHANGED', 'TEMPLATE_CHANGED'],
   },
 ]
 

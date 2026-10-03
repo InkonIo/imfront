@@ -1,0 +1,167 @@
+.toolbar-text {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+.template-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.template-card.off {
+  opacity: 0.6;
+}
+.template-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.scope-chip {
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--card-2);
+}
+.scope-chip.outlet {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.tpl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tpl-head input {
+  flex: 1;
+  min-width: 200px;
+  width: auto;
+  font-size: 18px;
+  font-weight: 700;
+}
+.tpl-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-size: 14px;
+}
+.tpl-section {
+  gap: 10px;
+}
+.tpl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tpl-section-title {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+}
+.tpl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card-2);
+}
+.tpl-item.off {
+  opacity: 0.55;
+}
+.tpl-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tpl-add {
+  align-self: flex-start;
+}
+.order-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.order-btns .icon-btn {
+  width: 28px;
+  height: 24px;
+  font-size: 13px;
+}
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.seg-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg-btn.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(28, 34, 48, 0.12);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.time-row {
+  display: flex;
+  gap: 10px;
+}
+.time-field {
+  flex: 1;
+}
+.field-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

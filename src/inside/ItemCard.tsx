@@ -38,6 +38,7 @@ export default function ItemCard({
   const [comment, setComment] = useState(item.comment ?? '')
   const [viewer, setViewer] = useState<string | null>(null)
   const [cameraOpen, setCameraOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const pending = item.status === 'PENDING'
@@ -185,6 +186,11 @@ export default function ItemCard({
         <div className="item-body">
           <div className="item-title">{item.title}</div>
           <div className="item-meta">
+            {item.instructions && (
+              <button type="button" className="meta-chip info-chip" onClick={() => setInfoOpen(true)}>
+                ℹ️ как делать
+              </button>
+            )}
             {tooEarly && <span className="meta-chip">🔒 с {fmtTime(item.dueFrom)}</span>}
             {timing && !tooEarly && (
               <span className={overdue ? 'meta-chip danger' : 'meta-chip'}>
@@ -326,6 +332,12 @@ export default function ItemCard({
             fileRef.current?.click()
           }}
         />
+      )}
+
+      {infoOpen && (
+        <Modal title={item.title} onClose={() => setInfoOpen(false)}>
+          <div className="instructions">{item.instructions}</div>
+        </Modal>
       )}
 
       {viewer && (

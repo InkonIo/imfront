@@ -4,15 +4,18 @@ import { useAuth } from '../auth'
 import ReviewQueue from './ReviewQueue'
 import { reviewApi } from './api'
 import type { ReviewSummary } from './types'
+import TemplatesPage from '../template/TemplatesPage'
 import '../admin/admin.css'
 import '../inside/inside.css'
 import './review.css'
 
-type SectionId = 'review' | 'audit'
+
+type SectionId = 'review' | 'audit' | 'templates'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
   { id: 'audit', icon: '📜', label: 'Смены и журнал', hint: 'Отчёты по сменам, фото, история действий' },
+    { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Маршруты для своей точки: пункты, время, фото, инструкции' },
 ]
 
 export default function DirectorLayout() {
@@ -105,6 +108,7 @@ export default function DirectorLayout() {
 
         {current.id === 'review' && <ReviewQueue onSummary={setSummary} />}
         {current.id === 'audit' && <AuditHub />}
+        {current.id === 'templates' && <TemplatesPage />}
       </main>
     </div>
   )

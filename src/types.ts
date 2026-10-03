@@ -166,6 +166,7 @@ export type AuditEventType =
   | 'USER_DELETED'
   | 'USER_PASSWORD_RESET'
   | 'CATALOG_CHANGED'
+  | 'TEMPLATE_CHANGED'
 
 export interface AuditEvent {
   id: number
@@ -225,6 +226,7 @@ export const AUDIT_META: Record<AuditEventType, { icon: string; label: string; t
   USER_DELETED: { icon: '❌', label: 'Удалил пользователя', tone: 'danger' },
   USER_PASSWORD_RESET: { icon: '🔑', label: 'Сбросил пароль', tone: 'warn' },
   CATALOG_CHANGED: { icon: '🏙️', label: 'Изменил справочник' },
+  TEMPLATE_CHANGED: { icon: '🧭', label: 'Изменил маршрут' },
 }
 // ================= аудит: флаги и отчёты по сменам =================
 
@@ -300,6 +302,7 @@ export interface ItemReport {
   sectionOrder: number
   sectionTitle: string
   title: string
+  instructions: string | null
   status: RunItemStatus
   normMin: number | null
   actualMin: number | null

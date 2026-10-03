@@ -6,12 +6,14 @@ import CitiesPage from './CitiesPage'
 import OutletsPage from './OutletsPage'
 import UsersPage from './UsersPage'
 import './admin.css'
+import TemplatesPage from '../template/TemplatesPage'
 
-type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities'
+type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
   { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
+  { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Чек-листы для ролей: пункты, время, фото, инструкции' },
   { id: 'users', icon: '👥', label: 'Пользователи', hint: 'Менеджеры, роли и доступ к точкам' },
   { id: 'outlets', icon: '📍', label: 'Точки', hint: 'Заведения, адреса, включение и выключение' },
   { id: 'cities', icon: '🏙️', label: 'Города', hint: 'Справочник городов' },
@@ -84,6 +86,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
 
         {current.id === 'review' && <ReviewQueue />}
         {current.id === 'audit' && <AuditHub />}
+        {current.id === 'templates' && <TemplatesPage />}
         {current.id === 'users' && <UsersPage />}
         {current.id === 'outlets' && <OutletsPage />}
         {current.id === 'cities' && <CitiesPage />}
