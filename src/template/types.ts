@@ -25,6 +25,7 @@ export interface TemplateItem {
   photoMode: PhotoMode
   weekday: number | null
   directorReview: boolean
+  TelegramNotify: boolean
   active: boolean
 }
 
@@ -50,6 +51,7 @@ export interface ItemBody {
   photoMode: PhotoMode
   weekday: number | null
   directorReview: boolean
+    telegramNotify: boolean
   active: boolean
 }
 

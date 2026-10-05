@@ -7,8 +7,10 @@ import OutletsPage from './OutletsPage'
 import UsersPage from './UsersPage'
 import './admin.css'
 import TemplatesPage from '../template/TemplatesPage'
+import RatingPage from '../rating/RatingPage'
+import NotificationBell from '../notify/NotificationBell'
 
-type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates'
+type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
@@ -17,6 +19,7 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'users', icon: '👥', label: 'Пользователи', hint: 'Менеджеры, роли и доступ к точкам' },
   { id: 'outlets', icon: '📍', label: 'Точки', hint: 'Заведения, адреса, включение и выключение' },
   { id: 'cities', icon: '🏙️', label: 'Города', hint: 'Справочник городов' },
+  { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
 ]
 
 export default function AdminLayout({ onExit }: { onExit: () => void }) {
@@ -41,6 +44,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
             <div className="name">Настройки</div>
             <div className="muted small">{user?.fullName}</div>
           </div>
+          <NotificationBell />
         </div>
 
         <div className="side-shift">
@@ -87,6 +91,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         {current.id === 'review' && <ReviewQueue />}
         {current.id === 'audit' && <AuditHub />}
         {current.id === 'templates' && <TemplatesPage />}
+        {current.id === 'rating' && <RatingPage />}
         {current.id === 'users' && <UsersPage />}
         {current.id === 'outlets' && <OutletsPage />}
         {current.id === 'cities' && <CitiesPage />}

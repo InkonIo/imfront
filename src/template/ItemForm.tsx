@@ -45,6 +45,7 @@ export default function ItemForm({
   const [photo, setPhoto] = useState<PhotoMode>(item?.photoMode ?? 'NONE')
   const [weekday, setWeekday] = useState<number | ''>(item?.weekday ?? '')
   const [review, setReview] = useState(item?.directorReview ?? false)
+const [telegram, setTelegram] = useState(item?.TelegramNotify ?? false)
   const [active, setActive] = useState(item?.active ?? true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -74,6 +75,7 @@ export default function ItemForm({
       photoMode: photo,
       weekday: weekday === '' ? null : weekday,
       directorReview: review,
+      telegramNotify: telegram || review,
       active,
     })
     setBusy(false)
@@ -203,6 +205,18 @@ export default function ItemForm({
         <label className="check">
           <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />
           👁 Проверяет директор (появится в «Ждут проверки»)
+        </label>
+                <label className="check">
+          <input
+            type="checkbox"
+            checked={telegram || review}
+            disabled={review}
+            onChange={(e) => setTelegram(e.target.checked)}
+          />
+          📲 Отправлять в Telegram директору
+          <span className="muted small">
+            {review ? ' (включено: пункт проверяет директор)' : ' (фото и время, без кнопок)'}
+          </span>
         </label>
         <label className="check">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

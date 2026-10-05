@@ -88,7 +88,7 @@ function ru(text: string) {
 }
 
 export default function AuditPage({ initialShiftId = null }: { initialShiftId?: number | null }) {
-  const users = useList(api.adminUsers)
+  const users = useList(api.auditUsers)
   const [date, setDate] = useState(todayAlmaty)
   const [userId, setUserId] = useState<number | ''>('')
   const [type, setType] = useState<AuditEventType | ''>('')

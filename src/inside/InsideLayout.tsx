@@ -6,15 +6,17 @@ import type { Checklist } from '../types'
 import { DailyPage, InventoryPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
 import { DAILY_SECTION, pct } from './utils'
 import NotificationBell from '../notify/NotificationBell'
+import RatingPage from '../rating/RatingPage'
 import './inside.css'
 
-type SectionId = 'route' | 'daily' | 'problems' | 'inventory' | 'summary'
+type SectionId = 'route' | 'daily' | 'problems' | 'inventory' | 'summary' | 'rating'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean }[] = [
   { id: 'route', icon: '🧭', label: 'Маршрут' },
   { id: 'daily', icon: '📅', label: 'Регламент дня' },
   { id: 'problems', icon: '📸', label: 'Проблемные зоны' },
   { id: 'inventory', icon: '📦', label: 'Инвентаризация', eveningOnly: true },
+  { id: 'rating', icon: '🏆', label: 'Рейтинг' },
   { id: 'summary', icon: '📊', label: 'Итоги смены' },
 ]
 
@@ -210,6 +212,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
           {current.id === 'problems' && <ProblemsPage {...pageProps} />}
           {current.id === 'inventory' && <InventoryPage {...pageProps} />}
           {current.id === 'summary' && <SummaryPage {...pageProps} />}
+          {current.id === 'rating' && <RatingPage />}
         </>
       )}
     </main>

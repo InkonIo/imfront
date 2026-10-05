@@ -111,6 +111,7 @@ export interface ChecklistPhoto {
 }
 
 export interface RunItem {
+  instructions: import("react").JSX.Element
   id: number
   sectionOrder: number
   sectionTitle: string
@@ -322,4 +323,10 @@ export interface ShiftReport {
   shift: ShiftSummary
   shiftFlags: Flag[]
   items: ItemReport[]
+}
+
+export interface UserBrief {
+  id: number
+  fullName: string
+  login: string
 }

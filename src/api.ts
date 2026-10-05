@@ -1,4 +1,5 @@
 import type {
+    UserBrief,
     ShiftReport,
     ShiftSummary,
   AuditPage,
@@ -135,6 +136,8 @@ export const api = {
   createCity: (body: CityBody) => request<City>('/api/admin/cities', send('POST', body)),
   updateCity: (id: number, body: CityBody) => request<City>(`/api/admin/cities/${id}`, send('PUT', body)),
   deleteCity: (id: number) => request<void>(`/api/admin/cities/${id}`, send('DELETE')),
+
+    auditUsers: () => request<UserBrief[]>('/api/audit/users'),
 
   // ---------- admin: outlets ----------
   adminOutlets: () => request<Outlet[]>('/api/admin/outlets'),

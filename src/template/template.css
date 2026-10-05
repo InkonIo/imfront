@@ -165,3 +165,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+.icon-btn.tg-on {
+  background: rgba(34, 158, 217, 0.15);
+  border-color: rgba(34, 158, 217, 0.45);
+}
+.icon-btn.tg-off {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.icon-btn.tg-off:hover:not(:disabled) {
+  filter: none;
+  opacity: 1;
+}

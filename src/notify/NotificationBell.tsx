@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal, errorText } from '../admin/ui'
 import { notifyApi } from './api'
 import type { AppNotification } from './types'
+import TelegramConnect from '../telegram/TelegramConnect'
 import '../admin/admin.css'
 import './notify.css'
 
@@ -66,6 +67,7 @@ export default function NotificationBell() {
 
       {open && (
         <Modal title="Обратная связь" onClose={() => setOpen(false)}>
+        <TelegramConnect />
           {error && <div className="error">{error}</div>}
           {items === null && !error && <div className="muted">Загрузка…</div>}
           {items !== null && items.length === 0 && <div className="muted">Пока замечаний нет 👌</div>}

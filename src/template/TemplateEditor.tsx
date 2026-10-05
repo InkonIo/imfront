@@ -16,6 +16,24 @@ function swapIds<T extends { id: number }>(list: T[], index: number, dir: -1 | 1
   return ids
 }
 
+/** Тело запроса из пункта с изменением одного поля. */
+function toBody(it: TemplateItem, patch: Partial<ItemBody>): ItemBody {
+  return {
+    sectionId: it.sectionId,
+    title: it.title,
+    instructions: it.instructions,
+    durationMin: it.durationMin,
+    dueFrom: it.dueFrom,
+    dueTo: it.dueTo,
+    photoMode: it.photoMode,
+    weekday: it.weekday,
+    directorReview: it.directorReview,
+    telegramNotify: it.TelegramNotify,
+    active: it.active,
+    ...patch,
+  }
+}
+
 export default function TemplateEditor({
   id,
   onBack,
@@ -185,6 +203,7 @@ export default function TemplateEditor({
 
       {tpl.sections.map((sec, si) => (
         <div key={sec.id} className="panel tpl-section">
+          {/* ---------- заголовок раздела ---------- */}
           <div className="tpl-section-head">
             {!ro && (
               <div className="order-btns">
@@ -245,6 +264,7 @@ export default function TemplateEditor({
 
           {sec.items.length === 0 && <div className="muted small">Пунктов пока нет</div>}
 
+          {/* ---------- пункты раздела ---------- */}
           {sec.items.map((it, ii) => (
             <div key={it.id} className={it.active ? 'tpl-item' : 'tpl-item off'}>
               {!ro && (
@@ -281,6 +301,22 @@ export default function TemplateEditor({
               </div>
               {!ro && (
                 <div className="row-actions">
+                  <button
+                    className={it.TelegramNotify || it.directorReview ? 'icon-btn tg-on' : 'icon-btn tg-off'}
+                    title={
+                      it.directorReview
+                        ? 'Отправляется в Telegram: пункт проверяет директор'
+                        : it.TelegramNotify
+                          ? 'Отправляется в Telegram. Нажми, чтобы выключить'
+                          : 'Не отправляется в Telegram. Нажми, чтобы включить'
+                    }
+                    disabled={busy || it.directorReview}
+                    onClick={() =>
+                      mutate(() => templateApi.updateItem(it.id, toBody(it, { telegramNotify: !it.TelegramNotify })))
+                    }
+                  >
+                    📲
+                  </button>
                   <button
                     className="icon-btn"
                     title="Редактировать"
@@ -370,6 +406,7 @@ function ItemChips({ it, onInfo }: { it: TemplateItem; onInfo: () => void }) {
       {it.photoMode === 'REQUIRED' && <span className="meta-chip">📸 нужно фото</span>}
       {it.photoMode === 'ON_PROBLEM' && <span className="meta-chip">📸 при проблеме</span>}
       {it.directorReview && <span className="meta-chip">👁 проверяет директор</span>}
+      {(it.TelegramNotify || it.directorReview) && <span className="meta-chip">📲 в Telegram</span>}
       {it.instructions && (
         <button type="button" className="meta-chip info-chip" onClick={onInfo}>
           ℹ️ инструкция
