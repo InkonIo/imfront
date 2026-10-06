@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-
+import { createPortal } from 'react-dom'
 export function errorText(err: unknown) {
   return err instanceof Error ? err.message : 'Ошибка'
 }
@@ -36,6 +36,7 @@ export function Modal({
   onClose: () => void
   children: ReactNode
 }) {
+  // Esc закрывает
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -44,14 +45,23 @@ export function Modal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  // пока открыта, страница под ней не скроллится (учитываем вложенные модалки)
+  useEffect(() => {
+    const body = document.body
+    const count = Number(body.dataset.modals ?? '0') + 1
+    body.dataset.modals = String(count)
+    body.classList.add('modal-open')
+    return () => {
+      const left = Number(body.dataset.modals ?? '1') - 1
+      body.dataset.modals = String(left)
+      if (left <= 0) body.classList.remove('modal-open')
+    }
+  }, [])
+
+  // портал: модалка всегда в <body>, поверх всего, где бы её ни вызвали
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+      <div className="modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Закрыть">
@@ -60,7 +70,8 @@ export function Modal({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

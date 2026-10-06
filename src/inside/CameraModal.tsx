@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth'
+import Portal from '../components/Portal'
+
 
 const ZONE = 'Asia/Almaty'
 const MAX_SIDE = 1600
@@ -155,6 +157,7 @@ export default function CameraModal({
   }
 
   return (
+    <Portal>
     <div className="camera-backdrop">
       <div className="camera">
         <div className="camera-head">
@@ -211,5 +214,6 @@ export default function CameraModal({
         <div className="camera-note">На фото ставится штамп времени и точки. Выбор из галереи отключён.</div>
       </div>
     </div>
+    </Portal>
   )
 }

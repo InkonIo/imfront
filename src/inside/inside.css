@@ -493,3 +493,6 @@ textarea:focus {
   line-height: 1.55;
   font-size: 15px;
 }
+
+.overlay { z-index: var(--z-overlay); }  
+.sidebar { z-index: var(--z-sidebar); }

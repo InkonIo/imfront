@@ -1,4 +1,5 @@
 :root {
+  /* цвета */
   --bg: #e8ebf1;
   --card: #f6f7fa;
   --card-2: #edf0f5;
@@ -13,6 +14,16 @@
   --danger: #dc3545;
   --ok: #16a34a;
   --shadow: 0 10px 30px rgba(28, 34, 48, 0.08);
+
+  /* слои интерфейса: чем больше, тем выше. Только эти значения, никаких 9999 */
+  --z-content: 1;    /* блоки страницы: подиум, бейджи, карточки */
+  --z-sticky: 10;    /* липкие шапки, нижняя панель инвентаризации */
+  --z-overlay: 29;   /* затемнение под мобильным меню */
+  --z-sidebar: 30;   /* выезжающее мобильное меню */
+  --z-modal: 1000;   /* модальные окна (через портал в body) */
+  --z-camera: 1100;  /* камера поверх модалок */
+  --z-toast: 1200;   /* всплывающие уведомления */
+
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: light;
 }
@@ -21,11 +32,19 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable; /* место под полосу прокрутки всегда зарезервировано: без сдвига при открытии модалки */
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+}
+
+body.modal-open {
+  overflow: hidden; /* под модалкой страница не прокручивается */
 }
 
 #root {
