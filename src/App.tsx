@@ -5,7 +5,6 @@ import { useAuth } from './auth'
 import Login from './screens/Login'
 import ChangePassword from './screens/ChangePassword'
 import Wizard from './screens/Wizard'
-import Home from './screens/Home'
 import InsideLayout from './inside/InsideLayout'
 import AdminLayout from './admin/AdminLayout'
 import DirectorLayout from './review/DirectorLayout'
@@ -32,6 +31,6 @@ export default function App() {
 
   if (isAdmin && view === 'settings') return <AdminLayout onExit={() => setView('work')} />
   if (!shift) return <Centered><Wizard onOpenSettings={openSettings} /></Centered>
-  if (shift.shiftRole === 'INSIDE') return <InsideLayout onOpenSettings={openSettings} />
-  return <Centered><Home onOpenSettings={openSettings} /></Centered>
+  // любая смена (инсайд, кухня, прилавок; утро, вечер, промеж) работает по своему маршруту
+  return <InsideLayout onOpenSettings={openSettings} />
 }
