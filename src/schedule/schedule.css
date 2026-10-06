@@ -1,0 +1,172 @@
+.sch-controls {
+  gap: 12px;
+}
+.sch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sch-spacer {
+  flex: 1;
+}
+.sch-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+.sch-inline input {
+  width: auto;
+}
+.sch-plan {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.sch-plan-part {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sch-notice {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.sch-warnings {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(220, 53, 69, 0.08);
+  color: #b4232f;
+  font-size: 14px;
+}
+.sch-warnings summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.sch-warnings ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+/* ---------- сетка графика ---------- */
+.sch-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.sch-grid th,
+.sch-grid td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: center;
+}
+.sch-grid th {
+  background: var(--card-2);
+  font-size: 12px;
+}
+.sch-part.morning {
+  background: rgba(242, 160, 7, 0.18);
+}
+.sch-part.evening {
+  background: rgba(99, 102, 241, 0.14);
+}
+.sch-date {
+  text-align: left !important;
+  white-space: nowrap;
+  min-width: 96px;
+}
+.sch-date.weekend b {
+  color: #c2410c;
+}
+.sch-away {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: normal;
+  margin-top: 2px;
+}
+.sch-cell {
+  cursor: pointer;
+  min-width: 110px;
+  transition: background 0.12s;
+}
+.sch-cell:hover {
+  background: var(--accent-soft);
+}
+.sch-cell.empty {
+  background: rgba(220, 53, 69, 0.06);
+}
+.sch-cell.off {
+  background: var(--card-2);
+}
+.sch-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-weight: 700;
+  cursor: grab;
+  user-select: none;
+}
+.sch-chip.draft {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.sch-hole {
+  color: #b4232f;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ---------- выбор человека ---------- */
+.sch-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sch-person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card-2);
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+.sch-person:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.sch-person.blocked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sch-person-name {
+  font-weight: 700;
+  flex: 1;
+}
+.sch-tag {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.sch-tag.bad {
+  background: rgba(220, 53, 69, 0.1);
+  color: #b4232f;
+}
+.sch-tag.warn {
+  background: rgba(234, 88, 12, 0.12);
+  color: #c2410c;
+}
+.sch-absence-form {
+  gap: 10px;
+}

@@ -3,19 +3,24 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { DAY_PART_LABEL } from '../types'
 import type { Checklist } from '../types'
-import { DailyPage, InventoryPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
+import { DailyPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
 import { DAILY_SECTION, pct } from './utils'
 import NotificationBell from '../notify/NotificationBell'
 import RatingPage from '../rating/RatingPage'
+import InventoryPage from '../inventory/InventoryPage'
+import ShiftSheetPage from '../sheet/ShiftSheetPage'
+import MySchedulePage from '../schedule/MySchedulePage'
 import './inside.css'
 
-type SectionId = 'route' | 'daily' | 'problems' | 'inventory' | 'summary' | 'rating'
+type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean }[] = [
   { id: 'route', icon: '🧭', label: 'Маршрут' },
+  { id: 'sheet', icon: '📋', label: 'Чек-лист смены' },
   { id: 'daily', icon: '📅', label: 'Регламент дня' },
   { id: 'problems', icon: '📸', label: 'Проблемные зоны' },
   { id: 'inventory', icon: '📦', label: 'Инвентаризация', eveningOnly: true },
+  { id: 'myschedule', icon: '🗓', label: 'Мой график' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг' },
   { id: 'summary', icon: '📊', label: 'Итоги смены' },
 ]
@@ -43,7 +48,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
     void load()
   }, [load])
 
-    // сигнал «я тут»: раз в минуту, пока вкладка видна
+  // сигнал «я тут»: раз в минуту, пока вкладка видна
   useEffect(() => {
     const beat = () => {
       if (document.visibilityState === 'visible') void api.ping().catch(() => {})
@@ -57,6 +62,16 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
     }
   }, [])
 
+  // кнопка «Открыть инвентаризацию» на пункте маршрута
+  useEffect(() => {
+    const open = () => {
+      setActive('inventory')
+      setMenuOpen(false)
+    }
+    window.addEventListener('im:open-inventory', open)
+    return () => window.removeEventListener('im:open-inventory', open)
+  }, [])
+
   if (!shift) return null
 
   const sections = SECTIONS.filter((s) => !s.eveningOnly || shift.dayPart === 'EVENING')
@@ -66,8 +81,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
 
   function badge(id: SectionId) {
     if (!checklist) return null
-    if (id === 'problems' && checklist.problems > 0)
-      return <span className="nav-badge danger">{checklist.problems}</span>
+    if (id === 'problems' && checklist.problems > 0) return <span className="nav-badge danger">{checklist.problems}</span>
     if (id === 'daily') {
       const left = checklist.items.filter((i) => i.sectionTitle === DAILY_SECTION && i.status === 'PENDING').length
       return left > 0 ? <span className="nav-badge">{left}</span> : null
@@ -101,121 +115,102 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
   const pageProps = { shift, checklist: checklist ?? null, onChange: setChecklist }
 
   return (
-  <div className="layout">
-    <div
-      className={menuOpen ? 'overlay show' : 'overlay'}
-      onClick={() => setMenuOpen(false)}
-    />
+    <div className="layout">
+      <div className={menuOpen ? 'overlay show' : 'overlay'} onClick={() => setMenuOpen(false)} />
 
-    <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
-
-      <div className="side-brand">
-        <div className="logo">IM</div>
-        <div>
-          <div className="name">Инсайд</div>
-          <div className="muted small">{user?.fullName}</div>
+      <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
+        <div className="side-brand">
+          <div className="logo">IM</div>
+          <div>
+            <div className="name">Инсайд</div>
+            <div className="muted small">{user?.fullName}</div>
+          </div>
+          <NotificationBell />
         </div>
 
-        <NotificationBell />
-      </div>
-
-      <div className="side-shift">
-        <span>📍 {shift.outletName}</span>
-        <span className="muted">
-          {shift.dayPart === 'MORNING' ? '🌅' : '🌙'}{' '}
-          {DAY_PART_LABEL[shift.dayPart]} · с {started}
-        </span>
-      </div>
-
-      {checklist && (
-        <div className="side-progress">
-          <div className="panel-row">
-            <span className="muted">Маршрут</span>
-            <strong>{p}%</strong>
-          </div>
-
-          <div className="progress">
-            <span style={{ width: `${p}%` }} />
-          </div>
+        <div className="side-shift">
+          <span>📍 {shift.outletName}</span>
+          <span className="muted">
+            {shift.dayPart === 'MORNING' ? '🌅' : '🌙'} {DAY_PART_LABEL[shift.dayPart]} · с {started}
+          </span>
         </div>
-      )}
 
-      <nav className="side-nav">
-        {sections.map((s) => (
-          <button
-            key={s.id}
-            className={s.id === current.id ? 'nav-item active' : 'nav-item'}
-            onClick={() => go(s.id)}
-          >
-            <span className="nav-icon">{s.icon}</span>
-            {s.label}
-            {badge(s.id)}
-          </button>
-        ))}
-      </nav>
-
-      <div className="side-foot">
-        {onOpenSettings && (
-          <button className="btn" onClick={onOpenSettings}>
-            ⚙️ Настройки
-          </button>
+        {checklist && (
+          <div className="side-progress">
+            <div className="panel-row">
+              <span className="muted">Маршрут</span>
+              <strong>{p}%</strong>
+            </div>
+            <div className="progress">
+              <span style={{ width: `${p}%` }} />
+            </div>
+          </div>
         )}
 
-        {error && <div className="error">{error}</div>}
+        <nav className="side-nav">
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              className={s.id === current.id ? 'nav-item active' : 'nav-item'}
+              onClick={() => go(s.id)}
+            >
+              <span className="nav-icon">{s.icon}</span>
+              {s.label}
+              {badge(s.id)}
+            </button>
+          ))}
+        </nav>
 
-        <button
-          className="btn danger"
-          onClick={finish}
-          disabled={busy}
-        >
-          Завершить смену
-        </button>
-
-        <button className="btn ghost small" onClick={logout}>
-          Выйти
-        </button>
-      </div>
-    </aside>
-
-    <main className="content">
-      <header className="content-head">
-        <button
-          className="burger"
-          onClick={() => setMenuOpen(true)}
-          aria-label="Меню"
-        >
-          ☰
-        </button>
-
-        <h1>
-          {current.icon} {current.label}
-        </h1>
-      </header>
-
-      {checklist === undefined && !loadError && (
-        <div className="muted">Загружаем чек-лист…</div>
-      )}
-
-      {loadError && (
-        <div className="page">
-          <div className="error">{loadError}</div>
-          <button className="btn" onClick={() => void load()}>
-            Повторить
+        <div className="side-foot">
+          {onOpenSettings && (
+            <button className="btn" onClick={onOpenSettings}>
+              ⚙️ Настройки
+            </button>
+          )}
+          {error && <div className="error">{error}</div>}
+          <button className="btn danger" onClick={finish} disabled={busy}>
+            Завершить смену
+          </button>
+          <button className="btn ghost small" onClick={logout}>
+            Выйти
           </button>
         </div>
-      )}
+      </aside>
 
-      {checklist !== undefined && !loadError && (
-        <>
-          {current.id === 'route' && <RoutePage {...pageProps} />}
-          {current.id === 'daily' && <DailyPage {...pageProps} />}
-          {current.id === 'problems' && <ProblemsPage {...pageProps} />}
-          {current.id === 'inventory' && <InventoryPage {...pageProps} />}
-          {current.id === 'summary' && <SummaryPage {...pageProps} />}
-          {current.id === 'rating' && <RatingPage />}
-        </>
-      )}
-    </main>
-  </div>
+      <main className="content">
+        <header className="content-head">
+          <button className="burger" onClick={() => setMenuOpen(true)} aria-label="Меню">
+            ☰
+          </button>
+          <h1>
+            {current.icon} {current.label}
+          </h1>
+        </header>
+
+        {checklist === undefined && !loadError && <div className="muted">Загружаем чек-лист…</div>}
+
+        {loadError && (
+          <div className="page">
+            <div className="error">{loadError}</div>
+            <button className="btn" onClick={() => void load()}>
+              Повторить
+            </button>
+          </div>
+        )}
+
+        {checklist !== undefined && !loadError && (
+          <>
+            {current.id === 'route' && <RoutePage {...pageProps} />}
+            {current.id === 'sheet' && <ShiftSheetPage />}
+            {current.id === 'daily' && <DailyPage {...pageProps} />}
+            {current.id === 'problems' && <ProblemsPage {...pageProps} />}
+            {current.id === 'inventory' && <InventoryPage />}
+            {current.id === 'myschedule' && <MySchedulePage />}
+            {current.id === 'rating' && <RatingPage />}
+            {current.id === 'summary' && <SummaryPage {...pageProps} />}
+          </>
+        )}
+      </main>
+    </div>
   )
 }

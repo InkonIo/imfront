@@ -1,4 +1,4 @@
-export type NotificationType = 'VIOLATION' | 'ITEM_REJECTED' | 'ITEM_APPROVED'
+export type NotificationType = 'VIOLATION' | 'ITEM_REJECTED' | 'ITEM_APPROVED' | 'SCHEDULE'
 
 export interface AppNotification {
   id: number

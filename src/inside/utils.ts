@@ -27,9 +27,17 @@ export function timingLabel(i: RunItem) {
   return null
 }
 
+/** Время пункта в мс. До 06:00 = следующие сутки (вечерняя смена после полуночи). */
+export function shiftTimeMs(shiftDate: string, time: string) {
+  const hhmm = time.slice(0, 5)
+  const d = new Date(`${shiftDate}T${hhmm}:00`)
+  if (Number(hhmm.slice(0, 2)) < 6) d.setDate(d.getDate() + 1)
+  return d.getTime()
+}
+
 export function isOverdue(i: RunItem, now: number, shiftDate: string) {
   if (i.status !== 'PENDING' || !i.dueTo) return false
-  return now > new Date(`${shiftDate}T${fmtTime(i.dueTo)}:00`).getTime()
+  return now > shiftTimeMs(shiftDate, i.dueTo)
 }
 
 export function groupBySection(items: RunItem[]) {

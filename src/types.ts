@@ -129,6 +129,7 @@ export interface RunItem {
   doneAt: string | null
   reopenUntil: string | null
   photos: ChecklistPhoto[]
+  action: string | null
 }
 
 export interface Checklist {
@@ -168,6 +169,8 @@ export type AuditEventType =
   | 'USER_PASSWORD_RESET'
   | 'CATALOG_CHANGED'
   | 'TEMPLATE_CHANGED'
+  | 'INVENTORY_STARTED'
+  | 'INVENTORY_SUBMITTED'
 
 export interface AuditEvent {
   id: number
@@ -228,6 +231,8 @@ export const AUDIT_META: Record<AuditEventType, { icon: string; label: string; t
   USER_PASSWORD_RESET: { icon: '🔑', label: 'Сбросил пароль', tone: 'warn' },
   CATALOG_CHANGED: { icon: '🏙️', label: 'Изменил справочник' },
   TEMPLATE_CHANGED: { icon: '🧭', label: 'Изменил маршрут' },
+  INVENTORY_STARTED: { icon: '📦', label: 'Начал инвентаризацию' },
+  INVENTORY_SUBMITTED: { icon: '📦', label: 'Сдал инвентаризацию', tone: 'ok' },
 }
 // ================= аудит: флаги и отчёты по сменам =================
 

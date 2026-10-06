@@ -9,17 +9,21 @@ import './admin.css'
 import TemplatesPage from '../template/TemplatesPage'
 import RatingPage from '../rating/RatingPage'
 import NotificationBell from '../notify/NotificationBell'
-
-type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating'
+import InventoryHistory from '../inventory/InventoryHistory'
+import SchedulePage from '../schedule/SchedulePage'
+ 
+type SectionId = 'review' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'schedule'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
+  { id: 'schedule', icon: '🗓', label: 'График', hint: 'Смены менеджеров: генерация, отпуска, публикация' },
   { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
   { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Чек-листы для ролей: пункты, время, фото, инструкции' },
   { id: 'users', icon: '👥', label: 'Пользователи', hint: 'Менеджеры, роли и доступ к точкам' },
   { id: 'outlets', icon: '📍', label: 'Точки', hint: 'Заведения, адреса, включение и выключение' },
   { id: 'cities', icon: '🏙️', label: 'Города', hint: 'Справочник городов' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
+  { id: 'inventory', icon: '📦', label: 'Инвентаризации', hint: 'Сданные и текущие инвентаризации, выгрузка в Excel' },
 ]
 
 export default function AdminLayout({ onExit }: { onExit: () => void }) {
@@ -89,12 +93,14 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         </header>
 
         {current.id === 'review' && <ReviewQueue />}
+        {current.id === 'schedule' && <SchedulePage />}
         {current.id === 'audit' && <AuditHub />}
         {current.id === 'templates' && <TemplatesPage />}
         {current.id === 'rating' && <RatingPage />}
         {current.id === 'users' && <UsersPage />}
         {current.id === 'outlets' && <OutletsPage />}
         {current.id === 'cities' && <CitiesPage />}
+        {current.id === 'inventory' && <InventoryHistory />}
       </main>
     </div>
   )

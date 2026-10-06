@@ -67,3 +67,7 @@
   font-size: 14px;
   white-space: pre-line;
 }
+
+.notify-item.schedule {
+  border-left-color: #1368ce;
+}

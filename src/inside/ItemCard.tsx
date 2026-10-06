@@ -5,7 +5,7 @@ import { Modal } from '../admin/ui'
 import type { Checklist, RunItem, RunItemStatus } from '../types'
 import AuthImage from './AuthImage'
 import CameraModal, { cameraSupported } from './CameraModal'
-import { compressImage, fmtTime, isOverdue, readTakenAt, timingLabel } from './utils'
+import { compressImage, fmtTime, isOverdue, readTakenAt, shiftTimeMs, timingLabel } from './utils'
 
 const EARLY_GRACE_MS = 5 * 60_000
 
@@ -54,9 +54,7 @@ export default function ItemCard({
   }, [running])
 
   const elapsedMs = running && item.startedAt ? Math.max(0, tick - Date.parse(item.startedAt)) : 0
-  const opensAt = item.dueFrom
-    ? new Date(`${shiftDate}T${fmtTime(item.dueFrom)}:00`).getTime() - EARLY_GRACE_MS
-    : null
+  const opensAt = item.dueFrom ? shiftTimeMs(shiftDate, item.dueFrom) - EARLY_GRACE_MS : null
   const tooEarly = pending && opensAt !== null && now < opensAt
   const canReopen = !pending && item.reopenUntil !== null && now < Date.parse(item.reopenUntil)
   const overdue = isOverdue(item, now, shiftDate)
@@ -268,6 +266,12 @@ export default function ItemCard({
       )}
 
       <div className="item-actions">
+
+        {pending && item.action === 'INVENTORY' && (
+          <button className="btn primary small" onClick={() => window.dispatchEvent(new Event('im:open-inventory'))}>
+            📦 Открыть инвентаризацию
+          </button>
+        )}
         {pending && notStarted && (
           <button className="btn primary small" onClick={start} disabled={busy || tooEarly}>
             ▶ Начать
