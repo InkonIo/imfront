@@ -1,6 +1,6 @@
 import { request, send } from '../api'
-import type { ShiftRole } from '../types'
-import type { Absence, AbsenceKind, Board, JobTitle, MySlot, SlotRef, Staff } from './types'
+import type { DayPart, ShiftRole } from '../types'
+import type { Absence, AbsenceKind, Board, JobTitle, Limit, MiddleShift, MySlot, SlotRef, Staff } from './types'
 
 export const scheduleApi = {
   board: (outletId: number, from: string, to: string) =>
@@ -11,6 +11,7 @@ export const scheduleApi = {
     days: number
     morning: ShiftRole[]
     evening: ShiftRole[]
+    middle: MiddleShift[]
     keepFilled: boolean
   }) => request<Board>('/api/schedule/generate', send('POST', body)),
   setSlot: (body: SlotRef & { outletId: number; userId: number | null }) =>
@@ -24,6 +25,13 @@ export const scheduleApi = {
   addAbsence: (body: { userId: number; kind: AbsenceKind; from: string; to: string; note: string | null }) =>
     request<Absence>('/api/schedule/absences', send('POST', body)),
   deleteAbsence: (id: number) => request<void>(`/api/schedule/absences/${id}`, send('DELETE')),
+  deleteLimit: (id: number) => request<void>(`/api/schedule/limits/${id}`, send('DELETE')),
+
+  // свой график и пожелания (любой сотрудник)
   today: () => request<MySlot[]>('/api/schedule/today'),
   my: (from: string, to: string) => request<MySlot[]>(`/api/schedule/my?from=${from}&to=${to}`),
+  myLimits: () => request<Limit[]>('/api/schedule/me/limits'),
+  addMyLimit: (body: { weekdays: number[]; dayPart: DayPart | null; from: string | null; to: string | null; note: string | null }) =>
+    request<Limit>('/api/schedule/me/limits', send('POST', body)),
+  deleteMyLimit: (id: number) => request<void>(`/api/schedule/me/limits/${id}`, send('DELETE')),
 }

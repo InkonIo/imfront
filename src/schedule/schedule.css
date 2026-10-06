@@ -180,3 +180,61 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+.sch-part.middle {
+  background: rgba(14, 165, 233, 0.14);
+}
+.sch-middle,
+.sch-limit-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sch-mid-chip,
+.sch-limit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 12px;
+  border-radius: 999px;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sch-mid-chip button,
+.sch-limit-chip button {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.sch-mid-chip button:hover,
+.sch-limit-chip button:hover {
+  background: rgba(220, 53, 69, 0.12);
+  color: #b4232f;
+}
+.sch-mid-add input[type='time'] {
+  width: auto;
+}
+.sch-preset {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sch-preset:hover {
+  border-color: var(--accent);
+}
+.sch-chip.limit {
+  border: 1px solid #ea580c;
+  background: rgba(234, 88, 12, 0.1);
+  color: #c2410c;
+}

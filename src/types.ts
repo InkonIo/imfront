@@ -2,7 +2,7 @@
 
 export type AccountRole = 'SUPER_ADMIN' | 'DIRECTOR' | 'MANAGER'
 export type ShiftRole = 'INSIDE' | 'PRODUCTION_MANAGER' | 'SERVICE_MANAGER'
-export type DayPart = 'MORNING' | 'EVENING'
+export type DayPart = 'MORNING' | 'EVENING' | 'MIDDLE'
 
 export interface Outlet {
   id: number
@@ -54,6 +54,13 @@ export const SHIFT_ROLE_LABEL: Record<ShiftRole, string> = {
 export const DAY_PART_LABEL: Record<DayPart, string> = {
   MORNING: 'Утро',
   EVENING: 'Вечер',
+  MIDDLE: 'Промеж',
+}
+
+export const DAY_PART_ICON: Record<DayPart, string> = {
+  MORNING: '🌅',
+  EVENING: '🌙',
+  MIDDLE: '🌤',
 }
 
 // ================= админка =================

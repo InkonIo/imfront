@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { DAY_PART_LABEL } from '../types'
+import { DAY_PART_ICON, DAY_PART_LABEL, SHIFT_ROLE_LABEL } from '../types'
 import type { Checklist } from '../types'
 import { DailyPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
 import { DAILY_SECTION, pct } from './utils'
@@ -14,12 +14,12 @@ import './inside.css'
 
 type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary'
 
-const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean }[] = [
+const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean; insideOnly?: boolean }[] = [
   { id: 'route', icon: '🧭', label: 'Маршрут' },
-  { id: 'sheet', icon: '📋', label: 'Чек-лист смены' },
+  { id: 'sheet', icon: '📋', label: 'Чек-лист смены', insideOnly: true },
   { id: 'daily', icon: '📅', label: 'Регламент дня' },
   { id: 'problems', icon: '📸', label: 'Проблемные зоны' },
-  { id: 'inventory', icon: '📦', label: 'Инвентаризация', eveningOnly: true },
+  { id: 'inventory', icon: '📦', label: 'Инвентаризация', eveningOnly: true, insideOnly: true },
   { id: 'myschedule', icon: '🗓', label: 'Мой график' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг' },
   { id: 'summary', icon: '📊', label: 'Итоги смены' },
@@ -74,7 +74,9 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
 
   if (!shift) return null
 
-  const sections = SECTIONS.filter((s) => !s.eveningOnly || shift.dayPart === 'EVENING')
+    const sections = SECTIONS.filter(
+    (s) => (!s.eveningOnly || shift.dayPart === 'EVENING') && (!s.insideOnly || shift.shiftRole === 'INSIDE'),
+  )
   const current = sections.find((s) => s.id === active) ?? sections[0]
   const started = new Date(shift.startedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   const p = checklist ? pct(checklist.completed, checklist.total) : 0
@@ -122,7 +124,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
         <div className="side-brand">
           <div className="logo">IM</div>
           <div>
-            <div className="name">Инсайд</div>
+            <div className="name">{SHIFT_ROLE_LABEL[shift.shiftRole]}</div>
             <div className="muted small">{user?.fullName}</div>
           </div>
           <NotificationBell />
@@ -131,7 +133,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
         <div className="side-shift">
           <span>📍 {shift.outletName}</span>
           <span className="muted">
-            {shift.dayPart === 'MORNING' ? '🌅' : '🌙'} {DAY_PART_LABEL[shift.dayPart]} · с {started}
+              {DAY_PART_ICON[shift.dayPart]} {DAY_PART_LABEL[shift.dayPart]} · с {started}
           </span>
         </div>
 

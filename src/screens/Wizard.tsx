@@ -7,6 +7,8 @@ import type { MySlot } from '../schedule/types'
 import { POSITION_LABEL } from '../schedule/types'
 import { DAY_PART_LABEL, SHIFT_ROLE_LABEL } from '../types'
 import type { DayPart, Outlet, ShiftRole } from '../types'
+import MySchedulePage from '../schedule/MySchedulePage'
+import { shiftLabel } from '../schedule/types'
 
 const ROLES: { value: ShiftRole; icon: string; hint: string }[] = [
   { value: 'INSIDE', icon: '🧭', hint: 'Контроль зала и кухни по маршруту' },
@@ -17,6 +19,7 @@ const ROLES: { value: ShiftRole; icon: string; hint: string }[] = [
 const PARTS: { value: DayPart; icon: string; hint: string }[] = [
   { value: 'MORNING', icon: '🌅', hint: 'Открытие, приём ночников, готовность к 10:00' },
   { value: 'EVENING', icon: '🌙', hint: 'Приём смены, инвентаризация, закрытие' },
+  { value: 'MIDDLE', icon: '🌤', hint: 'Между утром и вечером, своё время. Только кухня и прилавок' }
 ]
 
 export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void }) {
@@ -28,6 +31,7 @@ export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void
   const [role, setRole] = useState<ShiftRole | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showMine, setShowMine] = useState(false)
 
   // смены на сегодня по опубликованному графику
   useEffect(() => {
@@ -107,6 +111,20 @@ export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void
         </div>
       </header>
 
+      {showMine ? (
+        <>
+          <button className="btn ghost small" onClick={() => setShowMine(false)}>
+            ← Назад
+          </button>
+          <MySchedulePage />
+        </>
+      ) : (
+        <button className="btn ghost" onClick={() => setShowMine(true)}>
+          🗓 Мой график и «когда я не могу»
+        </button>
+      )}
+
+
       {planned === null && <div className="muted center-text">Загрузка…</div>}
 
       {/* ---------- по графику ---------- */}
@@ -122,9 +140,7 @@ export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void
                 onClick={() => void begin({ outletId: p.outletId, shiftRole: p.role, dayPart: p.dayPart })}
               >
                 <span className="tile-icon">{p.dayPart === 'MORNING' ? '🌅' : '🌙'}</span>
-                <span className="tile-title">
-                  {DAY_PART_LABEL[p.dayPart]} · {POSITION_LABEL[p.role]}
-                </span>
+                  <span className="tile-title">{shiftLabel(p)}</span>
                 <span className="tile-hint">📍 {p.outletName}. Нажми, чтобы начать смену</span>
               </button>
             ))}
@@ -195,7 +211,7 @@ export default function Wizard({ onOpenSettings }: { onOpenSettings?: () => void
                 {outletName} · {SHIFT_ROLE_LABEL[role]}
               </p>
               <div className="grid two">
-                {PARTS.map((p) => (
+                {PARTS.filter((p) => p.value !== 'MIDDLE' || role !== 'INSIDE').map((p) => (
                   <button
                     key={p.value}
                     className="tile"

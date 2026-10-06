@@ -5,21 +5,40 @@ import { Modal, errorText } from '../admin/ui'
 import { useAuth } from '../auth'
 import type { DayPart, Outlet, ShiftRole } from '../types'
 import { scheduleApi } from './api'
-import { ABSENCE_LABEL, JOB_LABEL, POSITION_LABEL, POSITIONS } from './types'
-import type { AbsenceKind, Board, JobTitle, Slot, SlotRef, Staff } from './types'
+import {
+  ABSENCE_LABEL,
+  JOB_LABEL,
+  MIDDLE_ROLES,
+  PART_ICON,
+  PART_LABEL,
+  POSITION_LABEL,
+  POSITIONS,
+  hhmm,
+  limitBlocks,
+  limitText,
+} from './types'
+import type { AbsenceKind, Board, Col, JobTitle, MiddleShift, Slot, SlotRef, Staff } from './types'
 import { exportSchedule } from './xlsx'
 import './schedule.css'
 
 const DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-const PARTS: DayPart[] = ['MORNING', 'EVENING']
+const PARTS: DayPart[] = ['MORNING', 'EVENING', 'MIDDLE']
 const PERIODS = [
   { days: 7, label: '7 дней' },
   { days: 14, label: '14 дней' },
   { days: 30, label: 'Месяц' },
 ]
-const PRESETS: { label: string; m: ShiftRole[]; e: ShiftRole[] }[] = [
-  { label: '☀️ Лето: 3 + 3', m: [...POSITIONS], e: [...POSITIONS] },
-  { label: '🍂 Сейчас: 2 + 2', m: ['INSIDE', 'SERVICE_MANAGER'], e: ['INSIDE', 'SERVICE_MANAGER'] },
+type Plan = { m: ShiftRole[]; e: ShiftRole[]; mid: MiddleShift[] }
+
+const PRESETS: { label: string; plan: Plan }[] = [
+  { label: '☀️ Лето: 3 + 3', plan: { m: [...POSITIONS], e: [...POSITIONS], mid: [] } },
+  { label: '🍂 Сейчас: 2 + 2', plan: { m: ['INSIDE', 'SERVICE_MANAGER'], e: ['INSIDE', 'SERVICE_MANAGER'], mid: [] } },
+]
+const MIDDLE_PRESETS: [string, string][] = [
+  ['10:00', '18:00'],
+  ['11:00', '19:00'],
+  ['12:00', '21:00'],
+  ['13:00', '22:00'],
 ]
 
 const iso = (d: Date) => d.toLocaleDateString('en-CA')
@@ -30,7 +49,44 @@ const addDays = (s: string, n: number) => {
 }
 const dm = (s: string) => `${s.slice(8, 10)}.${s.slice(5, 7)}`
 const dow = (s: string) => DOW[new Date(`${s}T12:00:00`).getDay()]
-const sameRef = (a: SlotRef, b: SlotRef) => a.date === b.date && a.dayPart === b.dayPart && a.role === b.role
+
+const sameRef = (a: SlotRef, b: SlotRef) =>
+  a.date === b.date && a.dayPart === b.dayPart && a.role === b.role && hhmm(a.startTime) === hhmm(b.startTime)
+
+const planKey = (p: Plan) =>
+  JSON.stringify({
+    m: [...p.m].sort(),
+    e: [...p.e].sort(),
+    mid: p.mid.map((x) => `${x.role}@${hhmm(x.start)}-${hhmm(x.end)}`).sort(),
+  })
+
+function columns(plan: Plan): Col[] {
+  return [
+    ...POSITIONS.filter((r) => plan.m.includes(r)).map((role) => ({ part: 'MORNING' as DayPart, role, start: null, end: null })),
+    ...POSITIONS.filter((r) => plan.e.includes(r)).map((role) => ({ part: 'EVENING' as DayPart, role, start: null, end: null })),
+    ...[...plan.mid]
+      .sort((a, b) => hhmm(a.start).localeCompare(hhmm(b.start)))
+      .map((x) => ({ part: 'MIDDLE' as DayPart, role: x.role, start: hhmm(x.start), end: hhmm(x.end) })),
+  ]
+}
+
+const colRef = (c: Col, date: string): SlotRef => ({
+  date,
+  dayPart: c.part,
+  role: c.role,
+  startTime: c.start,
+  endTime: c.end,
+})
+
+const colLabel = (c: Col) =>
+  c.part === 'MIDDLE' ? `${POSITION_LABEL[c.role]} ${c.start}–${c.end}` : POSITION_LABEL[c.role]
+
+/** Поздно закончил: вечер или промеж после 21:00. */
+const lateFinish = (s?: { dayPart: DayPart; endTime: string | null }) =>
+  !!s && (s.dayPart === 'EVENING' || (s.dayPart === 'MIDDLE' && hhmm(s.endTime) > '21:00'))
+/** Рано начинать: утро или промеж раньше 12:00. */
+const earlyStart = (s?: { dayPart: DayPart; startTime: string | null }) =>
+  !!s && (s.dayPart === 'MORNING' || (s.dayPart === 'MIDDLE' && !!s.startTime && hhmm(s.startTime) < '12:00'))
 
 type Tab = 'grid' | 'staff' | 'absences'
 
@@ -43,13 +99,16 @@ export default function SchedulePage() {
   const [from, setFrom] = useState(() => iso(new Date()))
   const [days, setDays] = useState(7)
   const [board, setBoard] = useState<Board | null>(null)
-  const [plan, setPlan] = useState<{ m: ShiftRole[]; e: ShiftRole[] } | null>(null)
+  const [plan, setPlan] = useState<Plan | null>(null)
   const [keepFilled, setKeepFilled] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [picker, setPicker] = useState<SlotRef | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [midRole, setMidRole] = useState<ShiftRole>('SERVICE_MANAGER')
+  const [midStart, setMidStart] = useState('12:00')
+  const [midEnd, setMidEnd] = useState('21:00')
   const to = addDays(from, days - 1)
 
   useEffect(() => {
@@ -76,7 +135,14 @@ export default function SchedulePage() {
       .then((b) => {
         if (cancelled) return
         setBoard(b)
-        setPlan((p) => p ?? { m: b.morning, e: b.evening })
+        setPlan(
+          (p) =>
+            p ?? {
+              m: b.morning,
+              e: b.evening,
+              mid: b.middle.map((x) => ({ ...x, start: hhmm(x.start), end: hhmm(x.end) })),
+            },
+        )
         setError('')
       })
       .catch((err) => {
@@ -88,8 +154,9 @@ export default function SchedulePage() {
   }, [outletId, from, to, reloadKey])
 
   const reload = () => setReloadKey((k) => k + 1)
+  const dates = useMemo(() => Array.from({ length: days }, (_, i) => addDays(from, i)), [from, days])
 
-  async function run(action: () => Promise<{ warnings?: string[] } | unknown>, ok?: string) {
+  async function run(action: () => Promise<unknown>, ok?: string) {
     setBusy(true)
     setError('')
     setNotice('')
@@ -106,15 +173,12 @@ export default function SchedulePage() {
     }
   }
 
-  const dates = useMemo(() => Array.from({ length: days }, (_, i) => addDays(from, i)), [from, days])
-
   if (outletId === null) return <div className="muted">Нет точек для графика</div>
   if (!board || !plan) return error ? <div className="error">{error}</div> : <div className="muted">Загрузка…</div>
 
   const b = board
-  const cols = (part: DayPart) => POSITIONS.filter((r) => (part === 'MORNING' ? plan.m : plan.e).includes(r))
-  const sameRoles = (a: ShiftRole[], c: ShiftRole[]) => a.length === c.length && a.every((r) => c.includes(r))
-  const planChanged = !sameRoles(plan.m, b.morning) || !sameRoles(plan.e, b.evening)
+  const cols = columns(plan)
+  const planChanged = planKey(plan) !== planKey({ m: b.morning, e: b.evening, mid: b.middle })
   const slotAt = (ref: SlotRef) => b.slots.find((s) => sameRef(s, ref))
   const absentNames = (d: string) =>
     b.absences.filter((a) => a.from <= d && a.to >= d).map((a) => `${a.userName} ${ABSENCE_LABEL[a.kind].split(' ')[0]}`)
@@ -128,13 +192,38 @@ export default function SchedulePage() {
     })
   }
 
+  function addMiddle() {
+    setError('')
+    if (midStart < '10:00') return setError('Промеж начинается не раньше 10:00 (раньше это утро)')
+    if (midEnd > '23:00') return setError('Промеж заканчивается не позже 23:00 (до нулей это вечер)')
+    if (midEnd <= midStart) return setError('«До» должно быть позже «с»')
+    if (plan?.mid.some((x) => x.role === midRole && hhmm(x.start) === midStart)) {
+      return setError('Такой промеж уже есть: поменяй время начала')
+    }
+    setPlan((p) => p && { ...p, mid: [...p.mid, { role: midRole, start: midStart, end: midEnd }] })
+  }
+
+  function removeMiddle(i: number) {
+    setPlan((p) => p && { ...p, mid: p.mid.filter((_, j) => j !== i) })
+  }
+
   function generate() {
-    if (!plan || !plan.m.length || !plan.e.length) return setError('Выбери хотя бы одну роль на утро и на вечер')
-    if (planChanged && !confirm('Снятые роли будут удалены из графика за этот период, даже опубликованные. Продолжить?'))
+    if (!plan) return
+    if (!plan.m.length && !plan.e.length && !plan.mid.length) return setError('Выбери хотя бы одну роль')
+    if (planChanged && !confirm('Убранные роли и промежи будут удалены из графика за этот период, даже опубликованные. Продолжить?'))
       return
     if (!keepFilled && !confirm('Перезаписать неопубликованные клетки этого периода?')) return
     void run(
-      () => scheduleApi.generate({ outletId: b.outletId, from, days, morning: plan.m, evening: plan.e, keepFilled }),
+      () =>
+        scheduleApi.generate({
+          outletId: b.outletId,
+          from,
+          days,
+          morning: plan.m,
+          evening: plan.e,
+          middle: plan.mid,
+          keepFilled,
+        }),
       '✨ График сгенерирован. Проверь и нажми «Опубликовать»',
     )
   }
@@ -205,7 +294,7 @@ export default function SchedulePage() {
 
             <div className="sch-row">
               {PRESETS.map((p) => (
-                <button key={p.label} className="btn small" onClick={() => setPlan({ m: p.m, e: p.e })}>
+                <button key={p.label} className="btn small" onClick={() => setPlan({ ...p.plan, mid: plan.mid })}>
                   {p.label}
                 </button>
               ))}
@@ -225,10 +314,55 @@ export default function SchedulePage() {
               ))}
             </div>
 
+            <div className="sch-middle">
+              <b>🌤 Промеж:</b>
+              {plan.mid.length === 0 && <span className="muted small">нет</span>}
+              {plan.mid.map((x, i) => (
+                <span key={`${x.role}${x.start}`} className="sch-mid-chip">
+                  {POSITION_LABEL[x.role]} {hhmm(x.start)}–{hhmm(x.end)}
+                  <button type="button" onClick={() => removeMiddle(i)} aria-label="Убрать">
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="sch-row sch-mid-add">
+              <select className="select" value={midRole} onChange={(e) => setMidRole(e.target.value as ShiftRole)}>
+                {MIDDLE_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {POSITION_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+              <label className="sch-inline">
+                с <input type="time" value={midStart} min="10:00" max="22:00" onChange={(e) => setMidStart(e.target.value)} />
+              </label>
+              <label className="sch-inline">
+                до <input type="time" value={midEnd} min="11:00" max="23:00" onChange={(e) => setMidEnd(e.target.value)} />
+              </label>
+              <button className="btn small" type="button" onClick={addMiddle}>
+                ＋ Промеж
+              </button>
+              <span className="muted small">быстро:</span>
+              {MIDDLE_PRESETS.map(([s, e]) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="sch-preset"
+                  onClick={() => {
+                    setMidStart(s)
+                    setMidEnd(e)
+                  }}
+                >
+                  {s.slice(0, 2)}–{e.slice(0, 2)}
+                </button>
+              ))}
+            </div>
+
             {planChanged && (
               <p className="sch-plan-hint">
-                Роли изменены. Нажми «✨ Сгенерировать»: снятые роли уберутся из графика (даже опубликованные, людям придёт
-                уведомление), новые заполнятся.
+                Штатка изменена. Нажми «✨ Сгенерировать»: убранное удалится из графика (людям придёт уведомление), новое
+                заполнится.
               </p>
             )}
 
@@ -244,7 +378,7 @@ export default function SchedulePage() {
               <button className="btn" disabled={busy || drafts === 0} onClick={publish}>
                 📢 Опубликовать{drafts ? ` (${drafts})` : ''}
               </button>
-              <button className="btn ghost" onClick={() => void exportSchedule(b, cols('MORNING'), cols('EVENING'))}>
+              <button className="btn ghost" onClick={() => void exportSchedule(b, cols)}>
                 ⬇ Excel
               </button>
             </div>
@@ -252,7 +386,7 @@ export default function SchedulePage() {
 
           {b.warnings.length > 0 && (
             <details className="sch-warnings">
-              <summary>⚠ Пустых клеток: {b.warnings.length}</summary>
+              <summary>⚠ Требуют внимания: {b.warnings.length}</summary>
               <ul>
                 {b.warnings.map((w) => (
                   <li key={w}>{w}</li>
@@ -267,20 +401,21 @@ export default function SchedulePage() {
                 <thead>
                   <tr>
                     <th rowSpan={2}>Дата</th>
-                    {PARTS.map((part) => (
-                      <th key={part} colSpan={Math.max(1, cols(part).length)} className={`sch-part ${part.toLowerCase()}`}>
-                        {part === 'MORNING' ? '🌅 Утро' : '🌙 Вечер'}
-                      </th>
-                    ))}
+                    {PARTS.map((part) => {
+                      const n = cols.filter((c) => c.part === part).length
+                      return n > 0 ? (
+                        <th key={part} colSpan={n} className={`sch-part ${part.toLowerCase()}`}>
+                          {PART_ICON[part]} {PART_LABEL[part]}
+                        </th>
+                      ) : null
+                    })}
                   </tr>
                   <tr>
-                    {PARTS.flatMap((part) =>
-                      cols(part).map((r) => (
-                        <th key={`${part}${r}`} className="sch-role">
-                          {POSITION_LABEL[r]}
-                        </th>
-                      )),
-                    )}
+                    {cols.map((c) => (
+                      <th key={`${c.part}${c.role}${c.start ?? ''}`} className="sch-role">
+                        {colLabel(c)}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -293,37 +428,40 @@ export default function SchedulePage() {
                           <b>{dow(d)}</b> {dm(d)}
                           {away.length > 0 && <div className="sch-away">{away.join(', ')}</div>}
                         </td>
-                        {PARTS.flatMap((part) =>
-                          cols(part).map((role) => {
-                            const ref = { date: d, dayPart: part, role }
-                            const s = slotAt(ref)
-                            const planned = (part === 'MORNING' ? plan.m : plan.e).includes(role)
-                            return (
-                              <td
-                                key={`${part}${role}`}
-                                className={s?.userId ? 'sch-cell' : planned ? 'sch-cell empty' : 'sch-cell off'}
-                                onClick={() => setPicker(ref)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => onDrop(e, ref)}
-                              >
-                                {s?.userId ? (
-                                  <span
-                                    className={s.published ? 'sch-chip' : 'sch-chip draft'}
-                                    draggable
-                                    onDragStart={(e) => e.dataTransfer.setData('text/plain', JSON.stringify(ref))}
-                                    title={s.published ? 'Опубликовано' : 'Черновик: ещё не опубликовано'}
-                                  >
-                                    {s.userName}
-                                  </span>
-                                ) : planned ? (
-                                  <span className="sch-hole">⚠ пусто</span>
-                                ) : (
-                                  <span className="muted">—</span>
-                                )}
-                              </td>
-                            )
-                          }),
-                        )}
+                        {cols.map((c) => {
+                          const ref = colRef(c, d)
+                          const s = slotAt(ref)
+                          const chipClass = s?.conflict
+                            ? 'sch-chip conflict'
+                            : s?.limit
+                              ? 'sch-chip limit'
+                              : s?.published
+                                ? 'sch-chip'
+                                : 'sch-chip draft'
+                          return (
+                            <td
+                              key={`${c.part}${c.role}${c.start ?? ''}`}
+                              className={s?.userId ? 'sch-cell' : 'sch-cell empty'}
+                              onClick={() => setPicker(ref)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => onDrop(e, ref)}
+                            >
+                              {s?.userId ? (
+                                <span
+                                  className={chipClass}
+                                  draggable
+                                  onDragStart={(e) => e.dataTransfer.setData('text/plain', JSON.stringify(ref))}
+                                  title={s.conflict ?? s.limit ?? (s.published ? 'Опубликовано' : 'Черновик')}
+                                >
+                                  {s.conflict ? '⚠ ' : s.limit ? '🙅 ' : ''}
+                                  {s.userName}
+                                </span>
+                              ) : (
+                                <span className="sch-hole">⚠ пусто</span>
+                              )}
+                            </td>
+                          )
+                        })}
                       </tr>
                     )
                   })}
@@ -332,8 +470,8 @@ export default function SchedulePage() {
             </div>
           </div>
           <p className="muted small">
-            Клик по клетке открывает выбор человека. На компьютере имя можно перетащить в другую клетку (обмен). Пунктирная рамка
-            означает черновик: его видят только директор и суперадмин, пока не нажата «Опубликовать».
+            Клик по клетке открывает выбор человека, на компьютере имя можно перетащить в другую клетку (обмен). Пунктир означает
+            черновик, 🙅 — человек просил сюда не ставить, красное — нельзя (отпуск, больничный).
           </p>
 
           <StatsTable board={b} />
@@ -380,28 +518,31 @@ function Picker({
 
   const rows = board.staff.map((s) => {
     const absence = board.absences.find((a) => a.userId === s.userId && a.from <= target.date && a.to >= target.date)
-    const sameDay = board.slots.find(
-      (x) => x.userId === s.userId && x.date === target.date && !sameRef(x, target),
-    )
+    const sameDay = board.slots.find((x) => x.userId === s.userId && x.date === target.date && !sameRef(x, target))
     let block = ''
     if (absence) block = ABSENCE_LABEL[absence.kind]
     else if (target.role === 'INSIDE' && !s.canInside) block = 'не ставится инсайдом'
-    else if (sameDay) block = `уже: ${sameDay.dayPart === 'MORNING' ? 'утро' : 'вечер'} · ${POSITION_LABEL[sameDay.role]}`
+    else if (sameDay) block = `уже: ${PART_LABEL[sameDay.dayPart].toLowerCase()} · ${POSITION_LABEL[sameDay.role]}`
 
     const warns: string[] = []
-    if (target.dayPart === 'MORNING' && board.slots.some((x) => x.userId === s.userId && x.date === prevDay && x.dayPart === 'EVENING'))
-      warns.push('вчера был вечер')
-    if (target.dayPart === 'EVENING' && board.slots.some((x) => x.userId === s.userId && x.date === nextDay && x.dayPart === 'MORNING'))
-      warns.push('завтра утро')
+    const limit = board.limits.find((l) => l.userId === s.userId && limitBlocks(l, target.date, target.dayPart))
+    if (limit) warns.push(`🙅 просил: ${limitText(limit)}`)
+    const prev = board.slots.find((x) => x.userId === s.userId && x.date === prevDay)
+    const next = board.slots.find((x) => x.userId === s.userId && x.date === nextDay)
+    const today = { dayPart: target.dayPart, startTime: target.startTime, endTime: target.endTime }
+    if (lateFinish(prev) && earlyStart(today)) warns.push('накануне поздно закончил')
+    if (lateFinish(today) && earlyStart(next)) warns.push('завтра рано')
     if (s.jobTitle === 'DIRECTOR') warns.push('директор')
     const stat = board.stats.find((x) => x.userId === s.userId)
     return { s, block, warns, shifts: stat?.shifts ?? 0 }
   })
   rows.sort((a, b) => Number(!!a.block) - Number(!!b.block) || a.warns.length - b.warns.length || a.shifts - b.shifts)
 
+  const time = target.dayPart === 'MIDDLE' ? ` ${hhmm(target.startTime)}–${hhmm(target.endTime)}` : ''
+
   return (
     <Modal
-      title={`${dow(target.date)} ${dm(target.date)} · ${target.dayPart === 'MORNING' ? 'Утро' : 'Вечер'} · ${POSITION_LABEL[target.role]}`}
+      title={`${dow(target.date)} ${dm(target.date)} · ${PART_LABEL[target.dayPart]}${time} · ${POSITION_LABEL[target.role]}`}
       onClose={onClose}
     >
       <div className="sch-picker">
@@ -425,7 +566,12 @@ function Picker({
               {JOB_LABEL[s.jobTitle]} · смен: {shifts}
             </span>
             {block && <span className="sch-tag bad">{block}</span>}
-            {!block && warns.map((w) => <span key={w} className="sch-tag warn">⚠ {w}</span>)}
+            {!block &&
+              warns.map((w) => (
+                <span key={w} className="sch-tag warn">
+                  ⚠ {w}
+                </span>
+              ))}
           </button>
         ))}
       </div>
@@ -445,16 +591,18 @@ function StatsTable({ board }: { board: Board }) {
               <th>Сотрудник</th>
               <th>Должность</th>
               <th>Смен</th>
-              <th>🌅 Утро</th>
-              <th>🌙 Вечер</th>
+              <th>🌅</th>
+              <th>🌙</th>
+              <th>🌤</th>
               <th>Инсайдом</th>
-              <th>Отсутствия</th>
+              <th>Отсутствия и пожелания</th>
             </tr>
           </thead>
           <tbody>
             {board.staff.map((s) => {
               const st = board.stats.find((x) => x.userId === s.userId)
               const away = board.absences.filter((a) => a.userId === s.userId)
+              const limits = board.limits.filter((l) => l.userId === s.userId)
               return (
                 <tr key={s.userId} className={s.schedulable ? '' : 'dimmed'}>
                   <td className="strong">{s.fullName}</td>
@@ -462,9 +610,13 @@ function StatsTable({ board }: { board: Board }) {
                   <td>{st?.shifts ?? 0}</td>
                   <td>{st?.mornings ?? 0}</td>
                   <td>{st?.evenings ?? 0}</td>
+                  <td>{st?.middles ?? 0}</td>
                   <td>{s.canInside ? (st?.insides ?? 0) : '—'}</td>
                   <td className="small">
-                    {away.map((a) => `${ABSENCE_LABEL[a.kind]} ${dm(a.from)}–${dm(a.to)}`).join(', ') || '—'}
+                    {[
+                      ...away.map((a) => `${ABSENCE_LABEL[a.kind]} ${dm(a.from)}–${dm(a.to)}`),
+                      ...limits.map((l) => `🙅 ${limitText(l)}`),
+                    ].join('; ') || '—'}
                   </td>
                 </tr>
               )
@@ -497,6 +649,16 @@ function StaffTab({ board, onSaved }: { board: Board; onSaved: () => void }) {
     }
   }
 
+  async function removeLimit(id: number) {
+    if (!confirm('Удалить это пожелание сотрудника?')) return
+    try {
+      await scheduleApi.deleteLimit(id)
+      onSaved()
+    } catch (err) {
+      setError(errorText(err))
+    }
+  }
+
   return (
     <div className="page">
       {error && <div className="error">{error}</div>}
@@ -510,71 +672,91 @@ function StaffTab({ board, onSaved }: { board: Board; onSaved: () => void }) {
                 <th>Может инсайдом</th>
                 <th>В автографике</th>
                 <th>Макс. смен в неделю</th>
+                <th>🙅 Не может (заполняет сам)</th>
               </tr>
             </thead>
             <tbody>
-              {board.staff.map((s) => (
-                <tr key={s.userId}>
-                  <td>
-                    <div className="strong">{s.fullName}</div>
-                    <div className="muted small">@{s.login}</div>
-                  </td>
-                  <td>
-                    <select
-                      className="select"
-                      value={s.jobTitle}
-                      onChange={(e) => void save(s, { jobTitle: e.target.value as JobTitle })}
-                    >
-                      {(Object.keys(JOB_LABEL) as JobTitle[]).map((j) => (
-                        <option key={j} value={j}>
-                          {JOB_LABEL[j]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <label className="check">
-                      <input
-                        type="checkbox"
-                        checked={s.canInside}
-                        disabled={s.jobTitle === 'TRAINEE'}
-                        onChange={(e) => void save(s, { canInside: e.target.checked })}
-                      />
-                      {s.canInside ? 'да' : 'нет'}
-                    </label>
-                  </td>
-                  <td>
-                    <label className="check">
-                      <input
-                        type="checkbox"
-                        checked={s.schedulable}
-                        onChange={(e) => void save(s, { schedulable: e.target.checked })}
-                      />
-                      {s.schedulable ? 'да' : s.jobTitle === 'DIRECTOR' ? 'только вручную' : 'нет'}
-                    </label>
-                  </td>
-                  <td>
-                    <select
-                      className="select"
-                      value={s.maxShiftsWeek}
-                      onChange={(e) => void save(s, { maxShiftsWeek: Number(e.target.value) })}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
+              {board.staff.map((s) => {
+                const limits = board.limits.filter((l) => l.userId === s.userId)
+                return (
+                  <tr key={s.userId}>
+                    <td>
+                      <div className="strong">{s.fullName}</div>
+                      <div className="muted small">@{s.login}</div>
+                    </td>
+                    <td>
+                      <select
+                        className="select"
+                        value={s.jobTitle}
+                        onChange={(e) => void save(s, { jobTitle: e.target.value as JobTitle })}
+                      >
+                        {(Object.keys(JOB_LABEL) as JobTitle[]).map((j) => (
+                          <option key={j} value={j}>
+                            {JOB_LABEL[j]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={s.canInside}
+                          disabled={s.jobTitle === 'TRAINEE'}
+                          onChange={(e) => void save(s, { canInside: e.target.checked })}
+                        />
+                        {s.canInside ? 'да' : 'нет'}
+                      </label>
+                    </td>
+                    <td>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={s.schedulable}
+                          onChange={(e) => void save(s, { schedulable: e.target.checked })}
+                        />
+                        {s.schedulable ? 'да' : s.jobTitle === 'DIRECTOR' ? 'только вручную' : 'нет'}
+                      </label>
+                    </td>
+                    <td>
+                      <select
+                        className="select"
+                        value={s.maxShiftsWeek}
+                        onChange={(e) => void save(s, { maxShiftsWeek: Number(e.target.value) })}
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      {limits.length === 0 ? (
+                        <span className="muted small">нет, полностью доступен (5/2)</span>
+                      ) : (
+                        <div className="sch-limit-list">
+                          {limits.map((l) => (
+                            <span key={l.id} className="sch-limit-chip" title={l.note ?? ''}>
+                              {limitText(l)}
+                              <button type="button" onClick={() => void removeLimit(l.id)} aria-label="Удалить">
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       </div>
       <p className="muted small">
-        Свит-менеджер никогда не ставится инсайдом и только вместе с кем-то ещё. Директор с галочкой «В автографике» ставится в
-        последнюю очередь, если больше некого.
+        Пожелания «не могу» сотрудники заполняют сами в «🗓 Мой график». Генератор их не нарушает, вручную поставить можно, но
+        будет предупреждение 🙅.
       </p>
     </div>
   )
@@ -590,14 +772,21 @@ function AbsencesTab({ board, onSaved }: { board: Board; onSaved: () => void }) 
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   async function add() {
     if (userId === '') return
     setBusy(true)
     setError('')
+    setNotice('')
     try {
-      await scheduleApi.addAbsence({ userId, kind, from, to, note: note.trim() || null })
+      const res = await scheduleApi.addAbsence({ userId, kind, from, to, note: note.trim() || null })
       setNote('')
+      setNotice(
+        res.freed
+          ? `✅ Сохранено. Снято с графика смен: ${res.freed}. Эти клетки стали пустыми, закрой их генератором или вручную и опубликуй заново.`
+          : '✅ Сохранено. В эти дни человек в график не попадёт.',
+      )
       onSaved()
     } catch (err) {
       setError(errorText(err))
@@ -644,13 +833,10 @@ function AbsencesTab({ board, onSaved }: { board: Board; onSaved: () => void }) 
         </div>
         <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="Комментарий (необязательно)" />
         {error && <div className="error">{error}</div>}
+        {notice && <div className="sch-notice">{notice}</div>}
         <button className="btn primary" disabled={busy || userId === '' || !from || !to} onClick={add}>
           ＋ Добавить
         </button>
-        <p className="muted small">
-          В эти дни человек не попадёт в автографик и его нельзя будет поставить вручную. Если он уже стоит в графике, переставь
-          его.
-        </p>
       </div>
 
       <div className="panel table-panel">
