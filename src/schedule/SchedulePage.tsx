@@ -112,11 +112,9 @@ export default function SchedulePage() {
   if (!board || !plan) return error ? <div className="error">{error}</div> : <div className="muted">Загрузка…</div>
 
   const b = board
-  const cols = (part: DayPart) => {
-    const planned = part === 'MORNING' ? plan.m : plan.e
-    const used = b.slots.filter((s) => s.dayPart === part && s.userId).map((s) => s.role)
-    return POSITIONS.filter((r) => planned.includes(r) || used.includes(r))
-  }
+  const cols = (part: DayPart) => POSITIONS.filter((r) => (part === 'MORNING' ? plan.m : plan.e).includes(r))
+  const sameRoles = (a: ShiftRole[], c: ShiftRole[]) => a.length === c.length && a.every((r) => c.includes(r))
+  const planChanged = !sameRoles(plan.m, b.morning) || !sameRoles(plan.e, b.evening)
   const slotAt = (ref: SlotRef) => b.slots.find((s) => sameRef(s, ref))
   const absentNames = (d: string) =>
     b.absences.filter((a) => a.from <= d && a.to >= d).map((a) => `${a.userName} ${ABSENCE_LABEL[a.kind].split(' ')[0]}`)
@@ -132,6 +130,8 @@ export default function SchedulePage() {
 
   function generate() {
     if (!plan || !plan.m.length || !plan.e.length) return setError('Выбери хотя бы одну роль на утро и на вечер')
+    if (planChanged && !confirm('Снятые роли будут удалены из графика за этот период, даже опубликованные. Продолжить?'))
+      return
     if (!keepFilled && !confirm('Перезаписать неопубликованные клетки этого периода?')) return
     void run(
       () => scheduleApi.generate({ outletId: b.outletId, from, days, morning: plan.m, evening: plan.e, keepFilled }),
@@ -224,6 +224,13 @@ export default function SchedulePage() {
                 </div>
               ))}
             </div>
+
+            {planChanged && (
+              <p className="sch-plan-hint">
+                Роли изменены. Нажми «✨ Сгенерировать»: снятые роли уберутся из графика (даже опубликованные, людям придёт
+                уведомление), новые заполнятся.
+              </p>
+            )}
 
             <div className="sch-row">
               <label className="check">

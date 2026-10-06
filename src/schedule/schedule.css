@@ -170,3 +170,13 @@
 .sch-absence-form {
   gap: 10px;
 }
+
+.sch-plan-hint {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
