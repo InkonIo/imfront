@@ -1,15 +1,26 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../auth'
-import Bubbles from '../components/Bubbles'
+import SoapBubbles from '../components/SoapBubbles'
+import logo from '../assets/im-logo.svg'
 import './login.css'
+
+const SOUND_KEY = 'im_pop_sound'
 
 function greeting() {
   const h = new Date().getHours()
-  if (h < 5) return 'Доброй ночи 🌌'
-  if (h < 12) return 'Доброе утро 🌅'
-  if (h < 18) return 'Добрый день ☀️'
-  return 'Добрый вечер 🌙'
+  if (h < 5) return 'Доброй ночи ✨'
+  if (h < 12) return 'Доброе утро ☀️'
+  if (h < 18) return 'Добрый день 👋'
+  return 'Добрый вечер 🌆'
+}
+
+function readSound() {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'off'
+  } catch {
+    return true
+  }
 }
 
 export default function Login() {
@@ -20,6 +31,22 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pops, setPops] = useState(0)
+  const [sound, setSound] = useState(readSound)
+
+  const onPop = useCallback(() => setPops((n) => n + 1), [])
+
+  function toggleSound() {
+    setSound((s) => {
+      const next = !s
+      try {
+        localStorage.setItem(SOUND_KEY, next ? 'on' : 'off')
+      } catch {
+        // без сохранения
+      }
+      return next
+    })
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -28,72 +55,91 @@ export default function Login() {
     try {
       await login(loginValue.trim(), password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка')
+      setError(err instanceof Error ? err.message : 'Не удалось войти')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="login-page">
-      <aside className="login-brand">
-        <Bubbles />
-        <div className="logo">IM</div>
-        <h1 className="brand-title">IM Inside</h1>
-        <p className="brand-sub">Смены, чек-листы и контроль точек в одном месте.</p>
-        <ul className="brand-points">
-          <li>🧭 Маршрут инсайда по таймингам</li>
-          <li>🌅 Утро и 🌙 вечер, у каждой свой чек-лист</li>
-          <li>📸 Фото проблемных зон сразу директору</li>
+    <div className="login">
+      <SoapBubbles sound={sound} onPop={onPop} />
+
+      <section className="login-hero">
+        <div className="login-logo-tile">
+          <img src={logo} alt="I'm" className="login-logo" />
+        </div>
+
+        <h1 className="login-title">Смена начинается здесь</h1>
+        <p className="login-sub">
+          Маршрут по таймингам, чек-листы и фото для директора. Всё, что нужно инсайду и менеджерам, в одном окне.
+        </p>
+
+        <ul className="login-points">
+          <li>⏱️ Маршрут по таймингам</li>
+          <li>📸 Фото сразу директору</li>
+          <li>📋 Чек-лист смены</li>
+          <li>🏆 Рейтинг недели</li>
         </ul>
-        <div className="brand-foot">Лопни пузырь, пока ждёшь 😉</div>
-      </aside>
 
-      <section className="login-main">
-        <Bubbles subtle />
-        <form className="login-form" onSubmit={submit}>
-          <div>
-            <div className="hello">{hello}</div>
-            <h1>Вход</h1>
-            <p className="muted">Войди в свой аккаунт, чтобы начать смену</p>
-          </div>
-
-          <label>
-            Логин
-            <input
-              value={loginValue}
-              onChange={(e) => setLoginValue(e.target.value)}
-              autoComplete="username"
-              autoFocus
-            />
-          </label>
-
-          <label>
-            Пароль
-            <div className="pass-field">
-              <input
-                type={showPass ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                className="pass-toggle"
-                onClick={() => setShowPass((v) => !v)}
-                aria-label={showPass ? 'Скрыть пароль' : 'Показать пароль'}
-              >
-                {showPass ? '🙈' : '👁️'}
-              </button>
-            </div>
-          </label>
-
-          {error && <div className="error shake">{error}</div>}
-          <button className="btn primary" disabled={busy || !loginValue || !password}>
-            {busy ? 'Входим…' : 'Войти'}
+        <div className="login-foot">
+          <span>
+            🫧 Лопни пузырь, пока ждёшь
+            {pops > 0 && <b className="login-pops">Лопнуто: {pops}</b>}
+          </span>
+          <button type="button" className="login-sound" onClick={toggleSound} aria-pressed={sound}>
+            {sound ? '🔊 Звук' : '🔇 Без звука'}
           </button>
-        </form>
+        </div>
       </section>
+
+      <form className="login-card" onSubmit={submit}>
+        <div>
+          <div className="login-hello">{hello}</div>
+          <h2>Вход</h2>
+        </div>
+
+        <label className="login-field">
+          Логин
+          <input
+            className="login-input"
+            value={loginValue}
+            onChange={(e) => setLoginValue(e.target.value)}
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            autoFocus
+          />
+        </label>
+
+        <label className="login-field">
+          Пароль
+          <span className="login-pass">
+            <input
+              className="login-input"
+              type={showPass ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <button type="button" className="login-pass-toggle" onClick={() => setShowPass((v) => !v)}>
+              {showPass ? 'Скрыть' : 'Показать'}
+            </button>
+          </span>
+        </label>
+
+        {error && (
+          <div className="login-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        <button className="login-submit" disabled={busy || !loginValue || !password}>
+          {busy ? 'Входим…' : 'Войти'}
+        </button>
+
+        <p className="login-help">Забыли пароль? Попросите директора или суперадмина сбросить его.</p>
+      </form>
     </div>
   )
 }

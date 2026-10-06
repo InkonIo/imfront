@@ -1,0 +1,242 @@
+/* Слой пузырей поверх фона: сам слой не ловит клики, только пузыри */
+.soap {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ---------- полёт: снизу вверх + покачивание ---------- */
+.soap-fly {
+  position: absolute;
+  bottom: calc(var(--size) * -1.3);
+  width: var(--size);
+  height: var(--size);
+  animation: soap-rise var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+.soap-sway {
+  width: 100%;
+  height: 100%;
+  animation: soap-sway var(--sway-dur) ease-in-out infinite alternate;
+}
+
+/* ---------- сам пузырь ---------- */
+.soap-bubble {
+  position: relative;
+  display: block;
+  width: 1em;
+  height: 1em;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  /* прозрачная середина, светлеющий к краю «объём» */
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 0 56%,
+    rgba(255, 255, 255, 0.07) 64%,
+    rgba(255, 255, 255, 0.26) 79%,
+    rgba(255, 255, 255, 0.72) 95%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
+  box-shadow:
+    inset 0 0 0.07em rgba(255, 255, 255, 0.75),
+    inset 0.05em -0.07em 0.14em rgba(255, 150, 0, 0.18),
+    0 0.05em 0.2em rgba(150, 85, 0, 0.12);
+  animation: soap-wobble 2.6s ease-in-out infinite;
+  transition: filter 0.2s;
+    /* «стекло» под пузырём: там, где нет линзы (Safari, Firefox) */
+  -webkit-backdrop-filter: blur(0.6px) saturate(1.5) brightness(1.05);
+  backdrop-filter: blur(0.6px) saturate(1.5) brightness(1.05);
+}
+.soap-bubble:hover {
+  animation-duration: 0.9s; /* под курсором пузырь дрожит сильнее */
+}
+
+/* радужная плёнка: живёт у края и медленно переливается */
+.soap-bubble::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--hue),
+    rgba(255, 64, 160, 0.55),
+    rgba(255, 214, 60, 0.5),
+    rgba(80, 230, 140, 0.45),
+    rgba(60, 170, 255, 0.55),
+    rgba(170, 90, 255, 0.5),
+    rgba(255, 64, 160, 0.55)
+  );
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 77%, #000 92%, transparent 100%);
+  mask: radial-gradient(circle, transparent 58%, #000 77%, #000 92%, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: soap-film 9s linear infinite;
+}
+
+/* главный блик: отражение «окна» сверху слева */
+.soap-bubble::after {
+  content: '';
+  position: absolute;
+  left: 15%;
+  top: 11%;
+  width: 36%;
+  height: 21%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+  transform: rotate(-35deg);
+}
+
+/* второй, слабый блик снизу справа */
+.soap-glint {
+  position: absolute;
+  right: 17%;
+  bottom: 13%;
+  width: 18%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.75), transparent 70%);
+  transform: rotate(-35deg);
+  pointer-events: none;
+}
+
+/* ---------- лопание ---------- */
+.soap-burst {
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  margin: -0.5em 0 0 -0.5em;
+  pointer-events: none;
+}
+/* вспышка плёнки: радужное кольцо расширяется и тает */
+.soap-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--hue),
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 64, 160, 0.7),
+    rgba(255, 214, 60, 0.7),
+    rgba(60, 170, 255, 0.7),
+    rgba(255, 255, 255, 0.95)
+  );
+  -webkit-mask: radial-gradient(circle, transparent 86%, #000 90%, #000 97%, transparent 100%);
+  mask: radial-gradient(circle, transparent 86%, #000 90%, #000 97%, transparent 100%);
+  animation: soap-ring 0.32s ease-out forwards;
+}
+/* капли разлетаются от края */
+.soap-drop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(4px, 0.045em);
+  height: max(4px, 0.045em);
+  margin: calc(max(4px, 0.045em) / -2) 0 0 calc(max(4px, 0.045em) / -2);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.9);
+  transform: rotate(var(--a)) translateY(-0.45em);
+  animation: soap-drop 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+/* ---------- шипучка ---------- */
+.soap-fizz {
+  position: absolute;
+  bottom: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #fff 0 18%, rgba(255, 255, 255, 0.35) 40%, rgba(255, 255, 255, 0.6) 100%);
+  opacity: 0.7;
+  animation: soap-rise var(--dur) linear var(--delay) infinite;
+}
+
+/* ---------- анимации ---------- */
+@keyframes soap-rise {
+  to {
+    transform: translate3d(0, calc(-100vh - var(--size, 20px) * 2.6), 0);
+  }
+}
+@keyframes soap-sway {
+  from {
+    transform: translateX(calc(var(--sway) * -1));
+  }
+  to {
+    transform: translateX(var(--sway));
+  }
+}
+@keyframes soap-wobble {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  33% {
+    transform: scale(1.025, 0.975);
+  }
+  66% {
+    transform: scale(0.98, 1.02);
+  }
+}
+@keyframes soap-film {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes soap-ring {
+  from {
+    transform: scale(0.98);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+@keyframes soap-drop {
+  to {
+    transform: rotate(var(--a)) translateY(calc(-0.45em - var(--d))) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* «Уменьшить движение»: пузыри стоят на своих местах, лопать можно */
+@media (prefers-reduced-motion: reduce) {
+  .soap-fly {
+    animation: none;
+    bottom: auto;
+    top: var(--y);
+  }
+  .soap-sway,
+  .soap-bubble,
+  .soap-bubble::before {
+    animation: none;
+  }
+  .soap-fizz {
+    display: none;
+  }
+
+    
+}
+
+/* скрытый контейнер SVG-фильтров линзы */
+.soap-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* у пузырей с линзой середина почти прозрачная, чтобы увеличение было видно */
+.soap-bubble.lens {
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 0 62%,
+    rgba(255, 255, 255, 0.1) 72%,
+    rgba(255, 255, 255, 0.3) 84%,
+    rgba(255, 255, 255, 0.75) 96%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
+}
