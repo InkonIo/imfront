@@ -12,7 +12,8 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

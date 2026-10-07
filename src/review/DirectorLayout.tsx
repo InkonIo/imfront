@@ -6,19 +6,21 @@ import { reviewApi } from './api'
 import type { ReviewSummary } from './types'
 import TemplatesPage from '../template/TemplatesPage'
 import NotificationBell from '../notify/NotificationBell'
+import InsightsPage from '../insights/InsightsPage'
 import '../admin/admin.css'
 import '../inside/inside.css'
 import './review.css'
 import RatingPage from '../rating/RatingPage'
 
 
-type SectionId = 'review' | 'audit' | 'templates' | 'rating'
+type SectionId = 'review' | 'audit' | 'templates' | 'rating' |'insights'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
   { id: 'audit', icon: '📜', label: 'Смены и журнал', hint: 'Отчёты по сменам, фото, история действий' },
     { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Маршруты для своей точки: пункты, время, фото, инструкции' },
     { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
+    { id: 'insights', icon: '📊', label: 'Аналитика', hint: ''}
 ]
 
 export default function DirectorLayout() {
@@ -114,6 +116,7 @@ export default function DirectorLayout() {
         {current.id === 'audit' && <AuditHub />}
         {current.id === 'templates' && <TemplatesPage />}
         {current.id === 'rating' && <RatingPage />}
+        {current.id === 'insights' && <InsightsPage />}
       </main>
     </div>
   )
