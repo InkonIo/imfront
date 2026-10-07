@@ -10,9 +10,10 @@ import RatingPage from '../rating/RatingPage'
 import InventoryPage from '../inventory/InventoryPage'
 import ShiftSheetPage from '../sheet/ShiftSheetPage'
 import MySchedulePage from '../schedule/MySchedulePage'
+import ShelfPage from '../shelf/ShelfPage'
 import './inside.css'
 
-type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary'
+type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean; insideOnly?: boolean }[] = [
   { id: 'route', icon: '🧭', label: 'Маршрут' },
@@ -23,6 +24,7 @@ const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: bool
   { id: 'myschedule', icon: '🗓', label: 'Мой график' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг' },
   { id: 'summary', icon: '📊', label: 'Итоги смены' },
+  { id: 'shelf', icon: '🧊', label: 'Сроки хранения' }
 ]
 
 export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () => void }) {
@@ -210,6 +212,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
             {current.id === 'myschedule' && <MySchedulePage />}
             {current.id === 'rating' && <RatingPage />}
             {current.id === 'summary' && <SummaryPage {...pageProps} />}
+            {current.id === 'shelf' && <ShelfPage />}
           </>
         )}
       </main>

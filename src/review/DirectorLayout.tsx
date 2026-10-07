@@ -7,20 +7,22 @@ import type { ReviewSummary } from './types'
 import TemplatesPage from '../template/TemplatesPage'
 import NotificationBell from '../notify/NotificationBell'
 import InsightsPage from '../insights/InsightsPage'
+import ShelfPage from '../shelf/ShelfPage'
 import '../admin/admin.css'
 import '../inside/inside.css'
 import './review.css'
 import RatingPage from '../rating/RatingPage'
 
 
-type SectionId = 'review' | 'audit' | 'templates' | 'rating' |'insights'
+type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
   { id: 'audit', icon: '📜', label: 'Смены и журнал', hint: 'Отчёты по сменам, фото, история действий' },
-    { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Маршруты для своей точки: пункты, время, фото, инструкции' },
-    { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
-    { id: 'insights', icon: '📊', label: 'Аналитика', hint: ''}
+  { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Маршруты для своей точки: пункты, время, фото, инструкции' },
+  { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
+  { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Смены, менеджеры, инвентаризация, сравнение' },
+  { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' }
 ]
 
 export default function DirectorLayout() {
@@ -117,6 +119,7 @@ export default function DirectorLayout() {
         {current.id === 'templates' && <TemplatesPage />}
         {current.id === 'rating' && <RatingPage />}
         {current.id === 'insights' && <InsightsPage />}
+        {current.id === 'shelf' && <ShelfPage />}
       </main>
     </div>
   )
