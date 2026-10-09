@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { extApi } from './api'
 import type { ExtList } from './api'
+import ExtSchedule from './ExtSchedule'
+import ExtAnalytics from './ExtAnalytics'
 import './ext.css'
 
 const DAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
@@ -29,6 +31,7 @@ export default function ExtEmployeesPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
+  const [tab, setTab] = useState<'staff' | 'schedule' | 'analytics'>('staff')
 
   const load = useCallback(async () => {
     try {
@@ -64,6 +67,14 @@ export default function ExtEmployeesPage() {
 
   return (
     <div className="ext">
+      <div className="ext-tabs">
+        <button className={tab === 'staff' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('staff')}>Сотрудники</button>
+        <button className={tab === 'schedule' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('schedule')}>График</button>
+        <button className={tab === 'analytics' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('analytics')}>Аналитика</button>
+      </div>
+      {tab === 'schedule' && <ExtSchedule branchId={branch} />}
+      {tab === 'analytics' && <ExtAnalytics branchId={branch} />}
+      {tab === 'staff' && (<>
       <div className="ext-top">
         <input className="ext-input" type="search" placeholder="Поиск по имени или телефону" value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="ext-input" value={branch ?? ''} onChange={(e) => setBranch(e.target.value ? Number(e.target.value) : null)}>
@@ -114,6 +125,7 @@ export default function ExtEmployeesPage() {
           </tbody>
         </table>
       </div>
+      </>)}
     </div>
   )
 }
