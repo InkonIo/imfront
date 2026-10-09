@@ -12,7 +12,7 @@ export interface Training {
   id: number; instructorId: number; instructor: string; traineeId: number | null; trainee: string | null
   from: string; to: string; start: string; end: string; comment: string | null
 }
-export interface TrainingIn { instructorId: number; traineeId: number | null; from: string; to: string; start: string; end: string; comment: string }
+export interface TrainingIn { instructorId: number; traineeId: number | null; traineeName: string; from: string; to: string; start: string; end: string; comment: string }
 
 export interface DraftBrief { id: number; weekStart: string; status: 'DRAFT' | 'PUBLISHED'; cells: number; empty: number }
 export interface Shift {
@@ -28,6 +28,13 @@ export interface GenResult {
   draftId: number; weekStart: string; filled: number; empty: number; warnings: string[]
   pendingRequests: number; employeesUsed: number; slotsDefined: number
 }
+export interface OverviewCell {
+  kind: 'SHIFT' | 'ABSENCE' | 'OFF'; start?: string; end?: string; pos?: string; src?: 'PUB' | 'DRAFT' | 'TT'
+  ttStart?: string; ttEnd?: string; ttNote?: string; note?: string
+}
+export interface OverviewRow { id: number; name: string; role: 'MANAGER' | 'INSTRUCTOR' | 'STAFF'; cells: (OverviewCell | null)[]; any: boolean }
+export interface Overview { days: string[]; rows: OverviewRow[]; ttSyncedAt: string | null }
+export interface PlanSettings { maxConsecutive: number; minRestHours: number }
 export interface KlnBranch { id: number; title: string; ttBranchId: number | null; users: number; suggestTtBranchId?: number }
 export interface KlnUser { id: number; name: string; branch: string; active: boolean; phoneTail: string; positions: string; linkedTo: number | null }
 export interface KlnReport {
@@ -40,6 +47,10 @@ const B = '/api/sched/plan'
 export const planApi = {
   branches: () => request<PlanBranch[]>(`${B}/branches`),
   positions: () => request<Position[]>(`${B}/positions`),
+
+  overview: (b: number, from: string, days = 7) => request<Overview>(`${B}/overview?branchId=${b}&from=${from}&days=${days}`),
+  settings: () => request<PlanSettings>(`${B}/settings`),
+  saveSettings: (s: PlanSettings) => request<PlanSettings>(`${B}/settings`, send('PUT', s)),
 
   slots: (b: number) => request<SlotRow[]>(`${B}/branches/${b}/slots`),
   saveSlots: (b: number, rows: SlotRow[]) => request<SlotRow[]>(`${B}/branches/${b}/slots`, send('PUT', rows)),

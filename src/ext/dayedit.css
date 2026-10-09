@@ -1,0 +1,44 @@
+.de-back { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; z-index:1000; padding:16px; }
+.de-box { background:var(--e-card, #fff); color:var(--e-text, #1c1c1c); width:100%; max-width:440px; border-radius:16px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.35); max-height:92vh; overflow:auto; }
+.de-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+.de-head strong { display:block; font-size:16px; }
+.de-head span { color:var(--e-mute, #777); font-size:13px; }
+.de-x { border:0; background:var(--e-soft, #f1f1f1); width:36px; height:36px; border-radius:10px; font-size:22px; cursor:pointer; color:inherit; }
+.de-now { margin:12px 0 4px; font-size:14px; }
+.de-now em { color:var(--e-mute, #777); font-style:normal; }
+.de-warn { background:rgba(252,182,20,.2); border:1px solid rgba(252,182,20,.6); border-radius:10px; padding:8px 10px; font-size:13px; margin:8px 0; }
+.de-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--e-mute, #777); margin:14px 0 6px; }
+.de-presets { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+.de-presets button { display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:10px 12px; min-height:52px; border:1.5px solid var(--e-line, #ddd); background:var(--e-card, #fff); color:inherit; border-radius:12px; cursor:pointer; font:inherit; text-align:left; }
+.de-presets button:hover:not(:disabled) { border-color:#fcb614; background:rgba(252,182,20,.12); }
+.de-presets button span { font-size:12.5px; color:var(--e-mute, #777); }
+.de-presets button.off { background:var(--e-soft, #f4f4f4); }
+.de-custom { display:flex; align-items:center; gap:8px; }
+.de-custom input { flex:1 1 0; min-width:0; min-height:44px; border:1.5px solid var(--e-line, #ddd); border-radius:10px; padding:0 10px; font:inherit; background:var(--e-card, #fff); color:inherit; }
+.de-custom .go { min-height:44px; padding:0 14px; border:0; border-radius:10px; background:#fcb614; color:#1c1c1c; font-weight:700; cursor:pointer; }
+.de-note { width:100%; box-sizing:border-box; margin-top:10px; min-height:40px; border:1.5px solid var(--e-line, #ddd); border-radius:10px; padding:0 10px; font:inherit; background:var(--e-card, #fff); color:inherit; }
+.de-err { margin-top:10px; color:#c0392b; font-size:13px; font-weight:600; }
+.de-foot { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+.de-foot small { color:var(--e-mute, #777); font-size:12px; }
+.de-foot .reset { align-self:flex-start; border:1.5px solid var(--e-line, #ddd); background:none; color:inherit; border-radius:10px; padding:8px 12px; cursor:pointer; font:inherit; }
+.de-log { margin-top:10px; font-size:12px; color:var(--e-mute, #777); }
+.de-log summary { cursor:pointer; }
+.de-log div { margin-top:4px; }
+.de-box button:disabled { opacity:.55; cursor:default; }
+@media (max-width: 560px) { .de-back { align-items:flex-end; padding:0; } .de-box { border-radius:16px 16px 0 0; max-width:none; } }
+
+/* клетки графика, которые можно править */
+.cell.editable { cursor:pointer; position:relative; }
+.cell.editable:hover { outline:2px solid #fcb614; outline-offset:-2px; }
+.cell.editable:focus-visible { outline:2px solid #fcb614; outline-offset:-2px; }
+.cell .ed-mark { position:absolute; top:0; right:0; width:0; height:0; border-style:solid; border-width:0 9px 9px 0; border-color:transparent #1e88e5 transparent transparent; }
+.sch-chip .ed-chip { width:0 !important; height:0 !important; border-style:solid; border-width:0 10px 10px 0; border-color:transparent #1e88e5 transparent transparent; display:inline-block; }
+
+.de-tt { margin-top:12px; padding:10px 12px; border:1.5px solid var(--e-line, #ddd); border-radius:12px; }
+.de-tt.ok { border-color:#2e7d32; }
+.de-ttbtn { width:100%; min-height:44px; border:0; border-radius:10px; background:#00462b; color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+.de-ttline { font-size:14px; }
+.de-tt small { display:block; margin-top:4px; color:var(--e-mute, #777); font-size:12px; }
+.de-ttrow { display:flex; gap:8px; margin-top:10px; }
+.de-ttrow button { min-height:42px; padding:0 14px; border:1.5px solid var(--e-line, #ddd); border-radius:10px; background:none; color:inherit; font:inherit; cursor:pointer; }
+.de-ttrow .go { border:0; background:#fcb614; color:#1c1c1c; font-weight:700; }

@@ -1,35 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { planApi } from './Planapi'
-import type { Draft, DraftBrief, GenResult, Position, Shift } from './Planapi'
-import { SlotsPanel, PeoplePanel, TrainingPanel, KlnPanel } from './Plansetup'
-import { PART_LABEL, addDays, clk, dayLabel, dayOptions, errText, posClass, shortName } from './Planutil'
+import { planApi, type Draft, type DraftBrief, type GenResult, type Position, type Shift, type Training } from './planApi'
+import WeekNav from './WeekNav'
+import { PART_LABEL, addDays, clk, dayLabel, errText, posClass, shortName, toIso } from './planUtil'
 import './plan.css'
-
-type Sub = 'week' | 'slots' | 'people' | 'train' | 'kln'
-
-export default function PlanTab({ branchId }: { branchId: number | null }) {
-  const [sub, setSub] = useState<Sub>('week')
-  const tabs: [Sub, string][] = [['week', 'Неделя'], ['slots', 'Нормы'], ['people', 'Люди и позиции'], ['train', 'Обучение'], ['kln', 'kln']]
-  return (
-    <>
-      <div className="sch-seg" style={{ marginBottom: 12 }}>
-        {tabs.map(([k, t]) => <button key={k} className={sub === k ? 'on' : ''} onClick={() => setSub(k)}>{t}</button>)}
-      </div>
-      {sub === 'kln' ? <KlnPanel /> : branchId == null
-        ? <div className="ext-wrap"><div className="ext-empty">Выберите филиал вверху: график собирается по одному ресторану.</div></div>
-        : sub === 'week' ? <WeekView branchId={branchId} />
-        : sub === 'slots' ? <SlotsPanel branchId={branchId} />
-        : sub === 'people' ? <PeoplePanel branchId={branchId} />
-        : <TrainingPanel branchId={branchId} />}
-    </>
-  )
-}
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 /* ---------------- Неделя ---------------- */
 
-function WeekView({ branchId }: { branchId: number }) {
-  const startOptions = useMemo(() => dayOptions(1, 21), [])
-  const [weekStart, setWeekStart] = useState(startOptions[0].value)
+export default function WeekView({ branchId, onGoSettings }: { branchId: number; onGoSettings: () => void }) {
+  const today = toIso(new Date())
+  const tomorrow = addDays(today, 1)    
+  const [weekStart, setWeekStart] = useState(tomorrow)
+  const [trainings, setTrainings] = useState<Training[]>([])
   const [positions, setPositions] = useState<Position[]>([])
   const [drafts, setDrafts] = useState<DraftBrief[]>([])
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -53,11 +34,19 @@ function WeekView({ branchId }: { branchId: number }) {
   useEffect(() => {
     setDraft(null); setGen(null); setNote('')
     planApi.positions().then(setPositions).catch(() => {})
+    planApi.trainings(branchId).then(setTrainings).catch(() => {})
     reloadList().then((l) => {
       const first = l.find((x) => x.status === 'DRAFT') ?? l[0]
       if (first) { setWeekStart(first.weekStart); void openDraft(first.id) }
     }).catch((e) => setError(errText(e)))
   }, [branchId, reloadList, openDraft])
+
+  function changeWeek(ws: string) {
+    setWeekStart(ws)
+    setGen(null); setNote('')
+    const d = drafts.find((x) => x.weekStart === ws && x.status === 'DRAFT') ?? drafts.find((x) => x.weekStart === ws)
+    if (d) void openDraft(d.id); else setDraft(null)
+  }
 
   async function generate() {
     const exists = drafts.some((d) => d.status === 'DRAFT' && d.weekStart === weekStart)
@@ -101,6 +90,8 @@ function WeekView({ branchId }: { branchId: number }) {
     try { await planApi.delShift(draft.id, s.id); await openDraft(draft.id); void reloadList() } catch (e) { setError(errText(e)) }
   }
 
+  const weekEnd = addDays(weekStart, 6)
+  const weekTrainings = trainings.filter((t) => t.from <= weekEnd && t.to >= weekStart)
   const editable = draft?.status === 'DRAFT'
   const days = draft ? Array.from({ length: 7 }, (_, i) => addDays(draft.weekStart, i)) : []
   const order = (code: string) => { const i = positions.findIndex((p) => p.code === code); return i < 0 ? 999 : i }
@@ -127,16 +118,7 @@ function WeekView({ branchId }: { branchId: number }) {
   return (
     <>
       <div className="pl-bar">
-        <label className="pl-lab">Неделя с
-          <select className="ext-input" value={weekStart} onChange={(e) => {
-            setWeekStart(e.target.value)
-            const d = drafts.find((x) => x.weekStart === e.target.value && x.status === 'DRAFT') ?? drafts.find((x) => x.weekStart === e.target.value)
-            if (d) void openDraft(d.id); else { setDraft(null); setGen(null) }
-          }}>
-            {startOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            {drafts.filter((d) => !startOptions.some((o) => o.value === d.weekStart)).map((d) => <option key={d.weekStart} value={d.weekStart}>{dayLabel(d.weekStart)}</option>)}
-          </select>
-        </label>
+        <WeekNav from={weekStart} min={today} home={tomorrow} homeLabel="Ближайшая" onChange={changeWeek} />
         <button className="ext-btn primary" disabled={busy} onClick={() => void generate()}>{busy ? 'Собираю…' : 'Собрать черновик'}</button>
         {draft && editable && <button className="ext-btn" onClick={() => setAdding(true)}>+ Смена</button>}
         {draft && editable && <button className="ext-btn pl-pub" disabled={busy} onClick={() => void publish()}>Опубликовать</button>}
@@ -145,7 +127,9 @@ function WeekView({ branchId }: { branchId: number }) {
       {error && <div className="ext-msg err">{error}</div>}
       {note && <div className="ext-msg ok">{note}</div>}
       {gen && gen.pendingRequests > 0 && <div className="ext-msg err">Ещё не рассмотрено заявок на эти даты: {gen.pendingRequests}. Они в сборке не учтены.</div>}
-      {gen && gen.slotsDefined === 0 && <div className="ext-msg err">Для этого филиала не заданы нормы (вкладка «Нормы»), поэтому собирать нечего.</div>}
+      {gen && gen.slotsDefined === 0 && (
+        <div className="ext-msg err">Для этого филиала не заданы нормы, поэтому собирать нечего. <button className="ext-btn sm" onClick={onGoSettings}>Задать нормы</button></div>
+      )}
       {gen && gen.warnings.map((w, i) => <div key={i} className="ext-msg err">{w}</div>)}
 
       {draft && (
@@ -158,7 +142,21 @@ function WeekView({ branchId }: { branchId: number }) {
         </div>
       )}
 
-      {!draft && !busy && <div className="ext-wrap"><div className="ext-empty">На эту неделю графика ещё нет. Задайте нормы и нажмите «Собрать черновик».</div></div>}
+      {weekTrainings.length > 0 && (
+        <div className="pl-train">
+          <b>Обучение на этой неделе:</b>
+          {weekTrainings.map((t) => (
+            <span key={t.id}>{shortName(t.instructor)} → {t.trainee ? shortName(t.trainee) : 'стажёр не указан'} · {t.from === t.to ? dayLabel(t.from) : `${dayLabel(t.from)} – ${dayLabel(t.to)}`} · {t.start}–{clk(t.end)}{t.comment ? ` · ${t.comment}` : ''}</span>
+          ))}
+        </div>
+      )}
+
+      {!draft && !busy && (
+        <div className="ext-wrap"><div className="ext-empty">
+          На эту неделю графика ещё нет. Нажмите «Собрать черновик».
+          <div style={{ marginTop: 10 }}><button className="ext-btn sm" onClick={onGoSettings}>Нормы по ресторану</button></div>
+        </div></div>
+      )}
 
       {draft && rows.length === 0 && <div className="ext-wrap"><div className="ext-empty">В черновике нет смен: проверьте нормы.</div></div>}
 

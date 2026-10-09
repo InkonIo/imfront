@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { extApi } from '../ext/api'
-import type { ExtBranch } from '../ext/api'
-import ExtSchedule from '../ext/ExtSchedule'
 import { schedApi } from './api'
 import type { AccountRow, CreatedRow, OwnerInfo, SchedRequest } from './api'
-import PlanTab from '../plan/Plantab'
 import '../ext/ext.css'
 import './sched.css'
-
-type Tab = 'requests' | 'schedule' | 'plan' | 'access'
 
 const fmt = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y.slice(2)}` }
 const range = (r: { dateFrom: string; dateTo: string }) => (r.dateFrom === r.dateTo ? fmt(r.dateFrom) : `${fmt(r.dateFrom)} – ${fmt(r.dateTo)}`)
@@ -16,40 +10,9 @@ const days = (r: { dateFrom: string; dateTo: string }) => Math.round((Date.parse
 const clk = (t: string | null) => (t === '23:59' ? '00:00' : t)
 const errText = (e: unknown) => (e instanceof Error ? e.message : 'Ошибка')
 
-export default function SchedulerPage({ isAdmin, onChanged }: { isAdmin: boolean; onChanged?: () => void }) {
-  const [tab, setTab] = useState<Tab>('requests')
-  const [branches, setBranches] = useState<ExtBranch[]>([])
-  const [branch, setBranch] = useState<number | null>(null)
-
-  useEffect(() => {
-    extApi.list('', null, false).then((r) => setBranches(r.branches)).catch(() => {})
-  }, [])
-
-  return (
-    <div className="ext sched">
-      <div className="ext-tabs">
-        <button className={tab === 'requests' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('requests')}>Заявки</button>
-        <button className={tab === 'schedule' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('schedule')}>График</button>
-        <button className={tab === 'plan' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('plan')}>Авто-график</button>
-        <button className={tab === 'access' ? 'ext-tab on' : 'ext-tab'} onClick={() => setTab('access')}>Доступ сотрудников</button>
-      </div>
-      <div className="ext-top" style={{ marginBottom: 10 }}>
-        <select className="ext-input" style={{ maxWidth: 260 }} value={branch ?? ''} onChange={(e) => setBranch(e.target.value ? Number(e.target.value) : null)}>
-          <option value="">Все филиалы</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
-        </select>
-      </div>
-      {tab === 'requests' && <RequestsTab branchId={branch} onChanged={onChanged} />}
-      {tab === 'schedule' && <ExtSchedule branchId={branch} withRequests />}
-      {tab === 'plan' && <PlanTab branchId={branch} />}
-      {tab === 'access' && <AccessTab branchId={branch} isAdmin={isAdmin} />}
-    </div>
-  )
-}
-
 /* ---------------- Заявки ---------------- */
 
-function RequestsTab({ branchId, onChanged }: { branchId: number | null; onChanged?: () => void }) {
+export function RequestsTab({ branchId, onChanged }: { branchId: number | null; onChanged?: () => void }) {
   const [mode, setMode] = useState<'PENDING' | 'ALL'>('PENDING')
   const [items, setItems] = useState<SchedRequest[] | null>(null)
   const [error, setError] = useState('')
@@ -135,7 +98,7 @@ const STATUS: Record<string, string> = { PENDING: 'Ждёт', APPROVED: 'Одо�
 
 /* ---------------- Доступ ---------------- */
 
-function AccessTab({ branchId, isAdmin }: { branchId: number | null; isAdmin: boolean }) {
+export function AccessTab({ branchId, isAdmin }: { branchId: number | null; isAdmin: boolean }) {
   const [rows, setRows] = useState<AccountRow[] | null>(null)
   const [q, setQ] = useState('')
   const [sel, setSel] = useState<Set<number>>(new Set())

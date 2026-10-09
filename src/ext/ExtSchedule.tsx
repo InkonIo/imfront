@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { extApi } from './api'
 import { schedApi } from '../sched/api'
 import type { SchedRequest } from '../sched/api'
 import type { SchedCell, SchedData } from './api'
 import { MONTHS, WD, currentMonth, hm, shiftMonth } from './util'
+import DayEditor from './DayEditor'
+import type { DayTarget } from './DayEditor'
+
+/** Поля, которые приходят с правками дней; в общем типе ячейки их нет. */
+type EC = SchedCell & { edited?: boolean; ttType?: string | null; ttStart?: string | null; ttEnd?: string | null }
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
 
 type View = 'plan' | 'fact' | 'inout'
 type Kind = 'shift' | 'present' | 'late' | 'off' | 'pv' | 'miss' | 'vac' | 'sick' | 'trip' | 'hol' | 'pre' | 'fired' | 'plan' | 'other' | 'empty'
@@ -60,6 +67,7 @@ function viewKind(k: Kind, view: View): Kind {
 
 function short(t: string | null): string {
   if (!t) return ''
+  if (t === '23:59') return '0'
   const [h, m] = t.split(':')
   return m === '00' ? String(Number(h)) : `${Number(h)}:${m}`
 }
@@ -95,6 +103,12 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const [canEdit, setCanEdit] = useState(false)
+  const [editing, setEditing] = useState<DayTarget | null>(null)
+
+  useEffect(() => {
+    schedApi.caps().then((c) => setCanEdit(c.canManageSchedule)).catch(() => setCanEdit(false))
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -148,6 +162,23 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
     }
     return m
   }, [reqs, month])
+
+  function openEdit(emp: { id: number; fullName: string }, d: number, c: EC | undefined, k: Kind) {
+    const now = !c || k === 'empty' ? '—' : k === 'off' ? 'выходной'
+      : ['vac', 'sick', 'trip', 'hol', 'pre', 'fired'].includes(k) ? KIND[k].name : planText(c) || KIND[k].name || '—'
+    let tt: string | null = null
+    if (c?.edited) tt = !c.ttType && !c.ttStart ? 'нет записи' : c.ttType === 'weekend' || !c.ttStart ? 'выходной' : `${short(c.ttStart)}–${short(c.ttEnd ?? null)}`
+    const origKind = classify(c?.edited ? { ...c, type: c.ttType ?? null, planStart: c.ttStart ?? null, planEnd: c.ttEnd ?? null } : c)
+    const warns: string[] = []
+    if (['vac', 'sick', 'trip', 'hol', 'pre', 'fired'].includes(origKind)) warns.push(`В Таймтрекере тут: ${KIND[origKind].name.toLowerCase()}`)
+    if (c && (c.workedMin > 0 || c.factIn)) warns.push('Сотрудник в этот день уже отмечался на работе')
+    setEditing({
+      employeeId: emp.id, name: emp.fullName,
+      day: `${month}-${String(d).padStart(2, '0')}`,
+      dayTitle: `${d} ${MONTHS_GEN[mo - 1]}, ${WD[wd(d)]}`,
+      now, tt, edited: !!c?.edited, warn: warns.length ? warns.join('. ') : null,
+    })
+  }
 
   const days = useMemo(() => Array.from({ length: data?.daysInMonth ?? 0 }, (_, i) => i + 1), [data])
   const [y, mo] = month.split('-').map(Number)
@@ -232,6 +263,10 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
         {usedKinds.map((k) => (
           <span key={k} className="sch-chip"><i className={`cell t-${k}`}>{KIND[k].code}</i>{KIND[k].name}</span>
         ))}
+        {data?.cells.some((c) => (c as EC).edited) && (
+          <span className="sch-chip"><i className="ed-chip" />изменено на сайте</span>
+        )}
+        {canEdit && <span className="sch-chip">Нажми на клетку, чтобы изменить день</span>}
         {rawTypes.length > 0 && (
           <details className="sch-raw">
             <summary>типы из данных</summary>
@@ -268,7 +303,7 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
                     <em>{t?.shifts ?? 0} смен{t && t.min > 0 ? ` · ${hm(t.min)} ч` : ''}</em>
                   </th>
                   {days.map((d) => {
-                    const c = byEmp.get(e.id)?.get(d)
+                    const c = byEmp.get(e.id)?.get(d) as EC | undefined
                     const k = classify(c)
                     const vk = viewKind(k, view)
                     return (
@@ -277,7 +312,16 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
                           const rq = rqMap.get(`${e.id}:${d}`)
                           const rt = rq ? `\n${rq.status === 'PENDING' ? 'Заявка ждёт' : 'Одобрено'}: ${rq.kind === 'DAY_OFF' ? 'выходной' : `${rq.kind === 'AVAILABLE' ? 'может только' : 'недоступен'} ${rq.timeFrom}–${rq.timeTo === '23:59' ? '00:00' : rq.timeTo}`}${rq.comment ? ` («${rq.comment}»)` : ''}` : ''
                           return (
-                            <div className={`cell t-${vk}${rq ? ' has-rq' : ''}`} title={tip(c, k) + rt}>
+                            <div
+                              className={`cell t-${vk}${rq ? ' has-rq' : ''}${canEdit ? ' editable' : ''}`}
+                              title={tip(c, k) + rt + (c?.edited ? '\nИзменено на сайте' : '') + (canEdit ? '\nНажми, чтобы изменить' : '')}
+                              {...(canEdit ? {
+                                role: 'button', tabIndex: 0,
+                                onClick: () => openEdit(e, d, c, k),
+                                onKeyDown: (ev: KeyboardEvent) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openEdit(e, d, c, k) } },
+                              } : {})}
+                            >
+                              {c?.edited && <i className="ed-mark" />}
                               {cellText(c, vk === 'shift' ? 'plan' : k, view)}
                               {rq && <i className={`rq-dot ${rq.status === 'PENDING' ? 'p' : 'a'}`} />}
                             </div>
@@ -305,6 +349,14 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
           )}
         </table>
       </div>
+
+      {editing && (
+        <DayEditor
+          t={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); setNote('Сохранено'); void load() }}
+        />
+      )}
     </>
   )
 }

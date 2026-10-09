@@ -1,5 +1,5 @@
 import { useAuth } from '../auth'
-import SchedulerPage from './SchedulerPage'
+import ScheduleHub from './ScheduleHub'
 import './sched.css'
 
 /** Отдельный экран «Расписание» для ответственной, когда у неё нет открытой смены. */
@@ -9,11 +9,11 @@ export default function SchedulerShell({ onBack, onChanged }: { onBack: () => vo
     <div className="ext shell-wrap">
       <header className="shell-head">
         <button className="ext-btn" onClick={onBack}>← Назад</button>
-        <strong>Расписание сотрудников</strong>
+        <strong>Расписание</strong>
         <span className="muted-s">{user?.fullName}</span>
         <button className="ext-btn" onClick={logout}>Выйти</button>
       </header>
-      <SchedulerPage isAdmin={false} onChanged={onChanged} />
+      <ScheduleHub onChanged={onChanged} />
     </div>
   )
 }
@@ -27,7 +27,7 @@ export function ModeChooser({ pending, onShift, onSched }: { pending: number; on
         <h2>Привет, {user?.fullName?.split(' ')[0]}</h2>
         <button className="ext-btn primary big" onClick={onShift}>Начать смену</button>
         <button className="ext-btn big" onClick={onSched}>
-          Расписание сотрудников{pending > 0 && <span className="dot-badge">{pending}</span>}
+          Расписание{pending > 0 && <span className="dot-badge">{pending}</span>}
         </button>
         <button className="ext-btn link" onClick={logout}>Выйти</button>
       </div>

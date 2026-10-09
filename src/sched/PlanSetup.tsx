@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { planApi } from './Planapi'
-import type { KlnBranch, KlnReport, KlnUser, Part, PlanBranch, PlanEmp, Position, SlotRow, Training } from './Planapi'
-import { PART_LABEL, addDays, clk, dayOptions, errText, posClass, shortName } from './Planutil'
+import { planApi } from './planApi'
+import type { KlnBranch, KlnReport, KlnUser, Part, PlanBranch, PlanEmp, Position, SlotRow, Training } from './planApi'
+import { PART_LABEL, clk, dayLabel, dayOptions, errText, posClass, shortName } from './planUtil'
 
 const PARTS: Part[] = ['MORNING', 'MID', 'EVENING', 'NIGHT']
 
@@ -203,7 +203,7 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
   const [list, setList] = useState<Training[]>([])
   const [emps, setEmps] = useState<PlanEmp[]>([])
   const [instr, setInstr] = useState<number | ''>('')
-  const [trainee, setTrainee] = useState<number | ''>('')
+  const [trainee, setTrainee] = useState('')
   const [from, setFrom] = useState(days[1].value)
   const [to, setTo] = useState(days[1].value)
   const [start, setStart] = useState('08:00')
@@ -226,8 +226,10 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
     if (instr === '') { setError('Выберите инструктора'); return }
     setBusy(true); setError('')
     try {
-      await planApi.addTraining(branchId, { instructorId: instr, traineeId: trainee === '' ? null : trainee, from, to: to < from ? from : to, start, end, comment })
-      setComment(''); await load()
+      const name = trainee.trim()
+      const found = emps.find((e) => e.name.toLowerCase() === name.toLowerCase())
+      await planApi.addTraining(branchId, { instructorId: instr, traineeId: found ? found.id : null, traineeName: found ? '' : name, from, to: to < from ? from : to, start, end, comment })
+      setComment(''); setTrainee(''); await load()
     } catch (x) { setError(errText(x)) } finally { setBusy(false) }
   }
   async function del(id: number) {
@@ -236,17 +238,17 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
 
   return (
     <>
-      <p className="muted-s">На эти дни инструктор встаёт на TR, а стажёр на TRN в одни и те же часы. Сборка графика их не трогает и не ставит на другие смены.</p>
+      <p className="muted-s">На эти дни инструктор встаёт на TR. Стажёра можно вписать текстом: он может ещё не быть в kln и Таймтрекере. Если имя совпало с сотрудником из списка, стажёр встанет на TRN в те же часы.</p>
       {error && <div className="ext-msg err">{error}</div>}
       <div className="pl-form pl-card">
         <label>Инструктор<select className="ext-input" value={instr} onChange={(e) => setInstr(e.target.value ? Number(e.target.value) : '')}>
           <option value="">— выберите —</option>
           {sorted.map((e) => <option key={e.id} value={e.id}>{e.name}{e.isInstructor ? ' ★' : ''}</option>)}
         </select></label>
-        <label>Стажёр<select className="ext-input" value={trainee} onChange={(e) => setTrainee(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">— пока нет —</option>
-          {emps.filter((e) => e.id !== instr).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select></label>
+        <label>Стажёр
+          <input className="ext-input" list="trainee-list" value={trainee} maxLength={120} placeholder="Имя, можно нового сотрудника" onChange={(e) => setTrainee(e.target.value)} />
+          <datalist id="trainee-list">{emps.filter((e) => e.id !== instr).map((e) => <option key={e.id} value={e.name} />)}</datalist>
+        </label>
         <label>С<select className="ext-input" value={from} onChange={(e) => { setFrom(e.target.value); if (to < e.target.value) setTo(e.target.value) }}>
           {days.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select></label>
         <label>По<select className="ext-input" value={to} onChange={(e) => setTo(e.target.value)}>
@@ -264,7 +266,7 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
               <tr key={t.id}>
                 <td>{shortName(t.instructor)}</td>
                 <td>{t.trainee ? shortName(t.trainee) : <span className="muted-s">—</span>}</td>
-                <td>{t.from === t.to ? t.from : `${t.from} – ${t.to}`}</td>
+                <td>{t.from === t.to ? dayLabel(t.from) : `${dayLabel(t.from)} – ${dayLabel(t.to)}`}</td>
                 <td>{t.start}–{clk(t.end)}</td>
                 <td>{t.comment}</td>
                 <td><button className="ext-btn sm" onClick={() => void del(t.id)}>Удалить</button></td>
@@ -274,7 +276,7 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
           </tbody>
         </table>
       </div>
-      <p className="muted-s" style={{ marginTop: 8 }}>Даты можно выбрать до {addDays(days[0].value, 44)}.</p>
+      
     </>
   )
 }
@@ -338,6 +340,37 @@ export function KlnPanel() {
           </tbody>
         </table>
       </div>
+    </>
+  )
+}
+
+/* ---------------- Лимиты ---------------- */
+
+export function LimitsPanel() {
+  const [maxC, setMaxC] = useState(6)
+  const [rest, setRest] = useState(10)
+  const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    planApi.settings().then((s) => { setMaxC(s.maxConsecutive); setRest(s.minRestHours) }).catch((e) => setError(errText(e)))
+  }, [])
+
+  async function save() {
+    setMsg(''); setError('')
+    try { const s = await planApi.saveSettings({ maxConsecutive: maxC, minRestHours: rest }); setMaxC(s.maxConsecutive); setRest(s.minRestHours); setMsg('Сохранено') } catch (e) { setError(errText(e)) }
+  }
+
+  return (
+    <>
+      {error && <div className="ext-msg err">{error}</div>}
+      {msg && <div className="ext-msg ok">{msg}</div>}
+      <div className="pl-form pl-card">
+        <label>Рабочих дней подряд не больше<input className="ext-input" type="number" min={1} max={14} value={maxC} onChange={(e) => setMaxC(Number(e.target.value))} /></label>
+        <label>Отдых между сменами, часов<input className="ext-input" type="number" min={0} max={24} value={rest} onChange={(e) => setRest(Number(e.target.value))} /></label>
+        <button className="ext-btn primary" onClick={() => void save()}>Сохранить</button>
+      </div>
+      <p className="muted-s">Нормы часов в неделю нет. Эти два ограничения действуют при сборке графика для всех филиалов.</p>
     </>
   )
 }

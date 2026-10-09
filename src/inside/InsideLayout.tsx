@@ -11,7 +11,7 @@ import InventoryPage from '../inventory/InventoryPage'
 import ShiftSheetPage from '../sheet/ShiftSheetPage'
 import MySchedulePage from '../schedule/MySchedulePage'
 import ShelfPage from '../shelf/ShelfPage'
-import SchedulerPage from '../sched/SchedulerPage'
+import ScheduleHub from '../sched/ScheduleHub'
 import { useCaps } from '../sched/useCaps'
 import './inside.css'
 
@@ -219,7 +219,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
             {current.id === 'rating' && <RatingPage />}
             {current.id === 'summary' && <SummaryPage {...pageProps} />}
             {current.id === 'shelf' && <ShelfPage />}
-            {current.id === 'sched' && <SchedulerPage isAdmin={false} onChanged={() => void refreshCaps()} />}
+            {current.id === 'sched' && <ScheduleHub onChanged={() => void refreshCaps()} />}
           </>
         )}
       </main>
