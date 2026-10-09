@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { extApi } from './api'
+import { schedApi } from '../sched/api'
+import type { SchedRequest } from '../sched/api'
 import type { SchedCell, SchedData } from './api'
 import { MONTHS, WD, currentMonth, hm, shiftMonth } from './util'
 
@@ -25,13 +27,20 @@ const KIND: Record<Kind, { code: string; name: string }> = {
   empty: { code: '', name: '' },
 }
 
-/** Точные значения type у Таймтрекера мы знаем только для weekend и late; остальное угадываем по смыслу. */
+/** Значения type: was, wasnt, wasInWeekend, late, weekend, work, beforeWork, celebrate (из данных Таймтрекера); остальное угадываем по смыслу. */
 function classify(c: SchedCell | undefined): Kind {
   if (!c) return 'empty'
   const t = (c.type ?? '').toLowerCase()
+  // точные значения type из Таймтрекера
+  if (t === 'was') return 'present'
+  if (t === 'wasinweekend') return 'pv'
+  if (t === 'wasnt') return 'miss'
+  if (t === 'beforework') return 'pre'
+  if (t === 'celebrate') return c.workedMin > 0 ? 'present' : 'hol'
+  if (t === 'work') return c.workedMin > 0 || c.factIn ? 'present' : c.planStart ? 'plan' : 'empty'
   if (t === 'weekend') return c.workedMin > 0 ? 'pv' : 'off'
   if (t.includes('late')) return 'late'
-  if (/abs|skip|pass|miss|truan/.test(t)) return 'miss'
+  if (/wasnt|was_not|not_come|no_show|noshow|abs|skip|pass|miss|truan/.test(t)) return 'miss'
   if (/sick|ill|disab|quarant/.test(t)) return 'sick'
   if (/vac|leave|holiday_paid|annual/.test(t)) return 'vac'
   if (/trip|busin|command/.test(t)) return 'trip'
@@ -77,7 +86,8 @@ function tip(c: SchedCell | undefined, k: Kind): string {
   return parts.join(' · ')
 }
 
-export default function ExtSchedule({ branchId }: { branchId: number | null }) {
+export default function ExtSchedule({ branchId, withRequests = false }: { branchId: number | null; withRequests?: boolean }) {
+  const [reqs, setReqs] = useState<SchedRequest[]>([])
   const [month, setMonth] = useState(currentMonth())
   const [view, setView] = useState<View>('plan')
   const [q, setQ] = useState('')
@@ -89,11 +99,12 @@ export default function ExtSchedule({ branchId }: { branchId: number | null }) {
   const load = useCallback(async () => {
     try {
       setData(await extApi.schedule(month, branchId))
+      if (withRequests) setReqs(await schedApi.requests('ACTIVE', month, branchId).catch(() => []))
       setError('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка')
     }
-  }, [month, branchId])
+  }, [month, branchId, withRequests])
 
   useEffect(() => {
     void load()
@@ -122,6 +133,21 @@ export default function ExtSchedule({ branchId }: { branchId: number | null }) {
     })
     return m
   }, [data])
+
+  /** Заявки сотрудников по клеткам: employeeId:день → заявка. */
+  const rqMap = useMemo(() => {
+    const m = new Map<string, SchedRequest>()
+    const [yy, mm] = month.split('-').map(Number)
+    const last = new Date(Date.UTC(yy, mm, 0)).getUTCDate()
+    for (const r of reqs) {
+      const a = new Date(r.dateFrom + 'T00:00:00Z'), b = new Date(r.dateTo + 'T00:00:00Z')
+      for (let d = 1; d <= last; d++) {
+        const t = Date.UTC(yy, mm - 1, d)
+        if (t >= a.getTime() && t <= b.getTime()) m.set(`${r.employeeId}:${d}`, r)
+      }
+    }
+    return m
+  }, [reqs, month])
 
   const days = useMemo(() => Array.from({ length: data?.daysInMonth ?? 0 }, (_, i) => i + 1), [data])
   const [y, mo] = month.split('-').map(Number)
@@ -247,7 +273,16 @@ export default function ExtSchedule({ branchId }: { branchId: number | null }) {
                     const vk = viewKind(k, view)
                     return (
                       <td key={d} className={`${wd(d) === 0 || wd(d) === 6 ? 'we' : ''}${d === today ? ' today' : ''}`}>
-                        <div className={`cell t-${vk}`} title={tip(c, k)}>{cellText(c, vk === 'shift' ? 'plan' : k, view)}</div>
+                        {(() => {
+                          const rq = rqMap.get(`${e.id}:${d}`)
+                          const rt = rq ? `\n${rq.status === 'PENDING' ? 'Заявка ждёт' : 'Одобрено'}: ${rq.kind === 'DAY_OFF' ? 'выходной' : `${rq.kind === 'AVAILABLE' ? 'может только' : 'недоступен'} ${rq.timeFrom}–${rq.timeTo === '23:59' ? '00:00' : rq.timeTo}`}${rq.comment ? ` («${rq.comment}»)` : ''}` : ''
+                          return (
+                            <div className={`cell t-${vk}${rq ? ' has-rq' : ''}`} title={tip(c, k) + rt}>
+                              {cellText(c, vk === 'shift' ? 'plan' : k, view)}
+                              {rq && <i className={`rq-dot ${rq.status === 'PENDING' ? 'p' : 'a'}`} />}
+                            </div>
+                          )
+                        })()}
                       </td>
                     )
                   })}

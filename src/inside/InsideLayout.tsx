@@ -11,11 +11,13 @@ import InventoryPage from '../inventory/InventoryPage'
 import ShiftSheetPage from '../sheet/ShiftSheetPage'
 import MySchedulePage from '../schedule/MySchedulePage'
 import ShelfPage from '../shelf/ShelfPage'
+import SchedulerPage from '../sched/SchedulerPage'
+import { useCaps } from '../sched/useCaps'
 import './inside.css'
 
-type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf'
+type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf' | 'sched'
 
-const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean; insideOnly?: boolean }[] = [
+const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: boolean; insideOnly?: boolean; schedOnly?: boolean }[] = [
   { id: 'route', icon: '🧭', label: 'Маршрут' },
   { id: 'sheet', icon: '📋', label: 'Чек-лист смены', insideOnly: true },
   { id: 'daily', icon: '📅', label: 'Регламент дня' },
@@ -24,11 +26,14 @@ const SECTIONS: { id: SectionId; icon: string; label: string; eveningOnly?: bool
   { id: 'myschedule', icon: '🗓', label: 'Мой график' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг' },
   { id: 'summary', icon: '📊', label: 'Итоги смены' },
-  { id: 'shelf', icon: '🧊', label: 'Сроки хранения' }
+  { id: 'shelf', icon: '🧊', label: 'Сроки хранения' },
+  { id: 'sched', icon: '🙋', label: 'Расписание', schedOnly: true },
 ]
 
 export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const { user, shift, finishShift, logout } = useAuth()
+  // «Расписание» видит только назначенная ответственная; сервер проверяет это ещё раз
+  const { caps, refresh: refreshCaps } = useCaps(true, user?.id)
   const [active, setActive] = useState<SectionId>('route')
   const [menuOpen, setMenuOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -77,13 +82,14 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
   if (!shift) return null
 
     const sections = SECTIONS.filter(
-    (s) => (!s.eveningOnly || shift.dayPart === 'EVENING') && (!s.insideOnly || shift.shiftRole === 'INSIDE'),
+    (s) => (!s.eveningOnly || shift.dayPart === 'EVENING') && (!s.insideOnly || shift.shiftRole === 'INSIDE') && (!s.schedOnly || caps?.canManageSchedule === true),
   )
   const current = sections.find((s) => s.id === active) ?? sections[0]
   const started = new Date(shift.startedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   const p = checklist ? pct(checklist.completed, checklist.total) : 0
 
   function badge(id: SectionId) {
+    if (id === 'sched') return caps && caps.pending > 0 ? <span className="nav-badge danger">{caps.pending}</span> : null
     if (!checklist) return null
     if (id === 'problems' && checklist.problems > 0) return <span className="nav-badge danger">{checklist.problems}</span>
     if (id === 'daily') {
@@ -213,6 +219,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
             {current.id === 'rating' && <RatingPage />}
             {current.id === 'summary' && <SummaryPage {...pageProps} />}
             {current.id === 'shelf' && <ShelfPage />}
+            {current.id === 'sched' && <SchedulerPage isAdmin={false} onChanged={() => void refreshCaps()} />}
           </>
         )}
       </main>

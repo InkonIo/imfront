@@ -14,14 +14,16 @@ import SchedulePage from '../schedule/SchedulePage'
 import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
 import ExtEmployeesPage from '../ext/ExtEmployeesPage'
+import SchedulerPage from '../sched/SchedulerPage'
 
-type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'schedule'
+type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'sched' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'schedule'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
   { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Метрики менеджеров, смены, инвентаризации, сравнение' },
   { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' },
   { id: 'staff', icon: '👥', label: 'Сотрудники', hint: 'Список из Таймтрекера: синхронизация, поиск, филиалы' },
+  { id: 'sched', icon: '🙋', label: 'Заявки сотрудников', hint: 'Выходные и недоступность от сотрудников, доступ на сайт, выбор ответственной' },
   { id: 'schedule', icon: '🗓', label: 'График', hint: 'Смены менеджеров: генерация, отпуска, публикация' },
   { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
   { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Чек-листы для ролей: пункты, время, фото, инструкции' },
@@ -102,6 +104,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         {current.id === 'insights' && <InsightsPage />}
         {current.id === 'shelf' && <ShelfPage />}
         {current.id === 'staff' && <ExtEmployeesPage />}
+        {current.id === 'sched' && <SchedulerPage isAdmin />}
         {current.id === 'schedule' && <SchedulePage />}
         {current.id === 'audit' && <AuditHub />}
         {current.id === 'templates' && <TemplatesPage />}

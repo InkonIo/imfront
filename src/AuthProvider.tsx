@@ -5,6 +5,9 @@ import { AuthContext } from './auth'
 import type { AuthState } from './auth'
 import type { Shift, User } from './types'
 
+/** У сотрудника смен нет: запрос смены для него дал бы 403. */
+const isEmployee = (u: User) => String(u.accountRole) === 'EMPLOYEE'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [shift, setShift] = useState<Shift | null>(null)
@@ -33,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ;(async () => {
       try {
         const me = await api.me()
-        const current = await api.currentShift()
+        const current = isEmployee(me) ? null : await api.currentShift()
         if (cancelled) return
         setUser(me)
         setShift(current ?? null)
@@ -58,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await api.login(login, password)
         tokenStore.set(res.token)
         setUser(res.user)
-        setShift((await api.currentShift()) ?? null)
+        setShift(isEmployee(res.user) ? null : ((await api.currentShift()) ?? null))
       },
       changePassword: async (oldPassword, newPassword) => {
         await api.changePassword(oldPassword, newPassword)

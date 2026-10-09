@@ -27,8 +27,8 @@
 .ext-tab.on { background:var(--e-text); color:var(--e-card); border-color:var(--e-text); }
 
 /* ---------- График ---------- */
-.ext { --c-present:#6fbf4f; --c-late:#a3315f; --c-off:#e4e3dc; --c-miss:#e5392f; --c-vac:#ecc944; --c-sick:#62dcc7; --c-trip:#7b2fc2; --c-hol:#f4b25a; --c-pre:#a9a8a0; --c-fired:#5d5d5a; --c-other:#c7b9f0; }
-:root[data-theme="dark"] .ext { --c-off:#2e2e2b; --c-pre:#4a4a46; }
+.ext { --e-hover:#fdf1d3; --c-present:#6fbf4f; --c-late:#a3315f; --c-off:#e4e3dc; --c-miss:#e5392f; --c-vac:#ecc944; --c-sick:#62dcc7; --c-trip:#7b2fc2; --c-hol:#f4b25a; --c-pre:#a9a8a0; --c-fired:#5d5d5a; --c-other:#c7b9f0; }
+:root[data-theme="dark"] .ext { --e-hover:#33301f; --c-off:#2e2e2b; --c-pre:#4a4a46; }
 .sch-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
 .sch-month { display:flex; align-items:center; gap:8px; min-width:190px; justify-content:space-between; background:var(--e-card); border:1.5px solid var(--e-line); border-radius:12px; padding:0 6px; min-height:44px; text-transform:capitalize; }
 .ext-btn.sq { min-height:34px; width:34px; padding:0; font-size:20px; line-height:1; }
@@ -64,7 +64,7 @@ table.sch { border-collapse:separate; border-spacing:0; width:max-content; min-w
 .sch th.who strong { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sch th.who small { display:block; color:var(--e-mute); font-weight:400; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sch th.who em { display:block; font-style:normal; font-weight:600; font-size:11px; color:var(--e-mute); margin-top:1px; }
-.sch tbody tr:hover th.who, .sch tbody tr:hover td { background:rgba(252,182,20,.14); }
+.sch tbody tr:hover th.who, .sch tbody tr:hover td { background:var(--e-hover); }
 .sch th.corner { z-index:5; top:0; background:var(--e-soft); }
 .sch th.corner span { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--e-mute); display:block; }
 .sch th.corner small { color:var(--e-mute); font-weight:500; }

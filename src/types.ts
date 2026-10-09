@@ -1,6 +1,6 @@
 // ================= базовое =================
 
-export type AccountRole = 'SUPER_ADMIN' | 'DIRECTOR' | 'MANAGER'
+export type AccountRole ='SUPER_ADMIN' | 'DIRECTOR' | 'MANAGER' | 'EMPLOYEE'
 export type ShiftRole = 'INSIDE' | 'PRODUCTION_MANAGER' | 'SERVICE_MANAGER'
 export type DayPart = 'MORNING' | 'EVENING' | 'MIDDLE'
 
@@ -104,6 +104,7 @@ export const ACCOUNT_ROLE_LABEL: Record<AccountRole, string> = {
   SUPER_ADMIN: 'Суперадмин',
   DIRECTOR: 'Директор',
   MANAGER: 'Менеджер',
+  EMPLOYEE: 'Сотрудник'
 }
 
 // ================= чек-лист =================
