@@ -14,8 +14,10 @@ import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
 import ExtEmployeesPage from '../ext/ExtEmployeesPage'
 import ScheduleHub from '../sched/ScheduleHub'
+import SheetArchive from '../sheet/SheetArchive'
+import PrioritiesPage from '../priorities/PrioritiesPage'
 
-type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'schedule' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory'
+type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'schedule' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'sheets' | 'priorities'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
@@ -30,6 +32,8 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'cities', icon: '🏙️', label: 'Города', hint: 'Справочник городов' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
   { id: 'inventory', icon: '📦', label: 'Инвентаризации', hint: 'Сданные и текущие инвентаризации, выгрузка в Excel' },
+  { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
+  { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня: менеджеры выбирают их в чек-листе смены' },
 ]
 
 export default function AdminLayout({ onExit }: { onExit: () => void }) {
@@ -110,6 +114,8 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         {current.id === 'outlets' && <OutletsPage />}
         {current.id === 'cities' && <CitiesPage />}
         {current.id === 'inventory' && <InventoryHistory />}
+        {current.id === 'sheets' && <SheetArchive />}
+        {current.id === 'priorities' && <PrioritiesPage />}
       </main>
     </div>
   )

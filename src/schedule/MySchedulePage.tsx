@@ -4,6 +4,8 @@ import type { DayPart } from '../types'
 import { scheduleApi } from './api'
 import { WEEKDAY_SHORT, limitText, shiftLabel } from './types'
 import type { Limit, MySlot } from './types'
+import './schedule.css'
+import DatePicker from './DatePicker'
 
 const DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const iso = (d: Date) => d.toLocaleDateString('en-CA')
@@ -175,10 +177,10 @@ function LimitsPanel({ limits, onChange }: { limits: Limit[] | null; onChange: (
           {temporary && (
             <>
               <label className="sch-inline">
-                с <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                с <DatePicker value={from} onChange={setFrom} />
               </label>
               <label className="sch-inline">
-                по <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
+                по <DatePicker value={to} min={from || undefined} onChange={setTo} />
               </label>
             </>
           )}

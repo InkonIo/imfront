@@ -1,4 +1,4 @@
-import { request } from '../api'
+import { request, send } from '../api'
 
 /** Если ваш request уже добавляет /api — поправьте только эту константу. */
 const P = '/api/insights'
@@ -32,6 +32,8 @@ export const ins = {
   invCounts: (f: Filters, userId?: number, limit = 100) =>
     request<Row>(`${P}/inventory/counts${qs({ ...base(f), userId, limit })}`),
   invCount: (id: number) => request<Row>(`${P}/inventory/counts/${id}`),
+  invFeedback: (countId: number, lineId: number, comment: string) =>
+    request<Row>(`${P}/inventory/counts/${countId}/lines/${lineId}/feedback`, send('POST', { comment })),
   invProducts: (f: Filters, userId?: number) =>
     request<Row>(`${P}/inventory/products${qs({ ...base(f), userId })}`),
   invProduct: (id: number, f: Filters, userId?: number) =>

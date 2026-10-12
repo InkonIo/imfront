@@ -238,3 +238,24 @@
   background: rgba(234, 88, 12, 0.1);
   color: #c2410c;
 }
+
+/* «Мой график»: смены и пожелания «когда я не могу» */
+.my-shifts { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.my-shift { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card-2); }
+.my-shift.today { border-color: var(--accent); background: var(--accent-soft); }
+.chip.my-today { padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; }
+
+.my-limit-form { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.my-limit-form .btn.primary { align-self: flex-start; }
+
+/* дни недели: крупные кнопки-таблетки, выбранные подсвечены */
+.my-days { display: flex; flex-wrap: wrap; gap: 8px; }
+.my-day { min-width: 48px; height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--text); font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s; }
+.my-day:hover { border-color: var(--accent); }
+.my-day.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.my-day.all { background: var(--card-2); color: var(--muted); font-weight: 600; }
+.my-day.all:hover { color: var(--text); }
+@media (max-width: 520px) { .my-day { flex: 1 1 calc(25% - 8px); } }

@@ -8,13 +8,15 @@ import TemplatesPage from '../template/TemplatesPage'
 import NotificationBell from '../notify/NotificationBell'
 import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
+import SheetArchive from '../sheet/SheetArchive'
+import PrioritiesPage from '../priorities/PrioritiesPage'
 import '../admin/admin.css'
 import '../inside/inside.css'
 import './review.css'
 import RatingPage from '../rating/RatingPage'
 
 
-type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf'
+type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf' | 'sheets' | 'priorities'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
@@ -22,7 +24,9 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Маршруты для своей точки: пункты, время, фото, инструкции' },
   { id: 'rating', icon: '🏆', label: 'Рейтинг', hint: 'Подиум и места по баллам за период' },
   { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Смены, менеджеры, инвентаризация, сравнение' },
-  { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' }
+  { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' },
+  { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
+  { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня для своих точек' },
 ]
 
 export default function DirectorLayout() {
@@ -120,6 +124,8 @@ export default function DirectorLayout() {
         {current.id === 'rating' && <RatingPage />}
         {current.id === 'insights' && <InsightsPage />}
         {current.id === 'shelf' && <ShelfPage />}
+        {current.id === 'sheets' && <SheetArchive />}
+        {current.id === 'priorities' && <PrioritiesPage />}
       </main>
     </div>
   )

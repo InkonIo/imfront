@@ -23,3 +23,13 @@ export const posClass = (code: string) => {
   for (const ch of code) h = (h * 31 + ch.charCodeAt(0)) % 8
   return `pc-${h}`
 }
+
+/** Понедельник недели, в которую попадает дата. */
+export const mondayOf = (s: string) => { const d = parseIso(s); return addDays(s, -((d.getDay() + 6) % 7)) }
+/** Минуты → «7ч 30м», «8ч», «45м». */
+export const hm = (min: number) => {
+  const h = Math.floor(min / 60), m = Math.round(min % 60)
+  return h && m ? `${h}ч ${m}м` : h ? `${h}ч` : `${m}м`
+}
+/** Минуты → часы десятичной дробью: 37.5 */
+export const hrs = (min: number) => String(Math.round((min / 60) * 10) / 10).replace('.', ',')

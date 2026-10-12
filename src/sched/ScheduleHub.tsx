@@ -4,6 +4,7 @@ import { extApi } from '../ext/api'
 import type { ExtBranch } from '../ext/api'
 import SchedulePage from '../schedule/SchedulePage'
 import OverviewTab from './OverviewTab'
+import AnalyticsTab from './AnalyticsTab'
 import WeekView from './WeekView'
 import { AccessTab, RequestsTab } from './StaffAdmin'
 import { KlnPanel, LimitsPanel, PeoplePanel, SlotsPanel, TrainingPanel } from './PlanSetup'
@@ -11,7 +12,7 @@ import { useCaps } from './useCaps'
 import './sched.css'
 import './plan.css'
 
-type Top = 'overview' | 'managers' | 'staff'
+type Top = 'overview' | 'analytics' | 'managers' | 'staff'
 type Sub = 'requests' | 'week' | 'people' | 'settings'
 
 const BRANCH_KEY = 'sched.branch'
@@ -53,13 +54,14 @@ export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
 
   const tabs: { id: Top; label: string; badge?: number }[] = []
   if (canManagers || canStaff) tabs.push({ id: 'overview', label: 'Общий график' })
+  if (canManagers || canStaff) tabs.push({ id: 'analytics', label: 'Аналитика' })
   if (canManagers) tabs.push({ id: 'managers', label: 'Менеджеры' })
   if (canStaff) tabs.push({ id: 'staff', label: 'Сотрудники', badge: caps?.pending })
   const current: Top = top && tabs.some((t) => t.id === top) ? top : tabs[0]?.id ?? 'overview'
   if (tabs.length === 0) return <div className="ext"><div className="ext-empty">Нет доступа к расписанию.</div></div>
 
   const subs: [Sub, string][] = [['requests', 'Заявки'], ['week', 'График недели'], ['people', 'Люди и обучение'], ['settings', 'Настройки']]
-  const needsBranch = current === 'overview' || (current === 'staff' && sub !== 'requests')
+  const needsBranch = current === 'overview' || current === 'analytics' || (current === 'staff' && sub !== 'requests')
 
   return (
     <div className="ext sched">
@@ -81,6 +83,8 @@ export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
       </div>
 
       {current === 'overview' && (branch == null ? <NeedBranch /> : <OverviewTab branchId={branch} />)}
+
+      {current === 'analytics' && (branch == null ? <NeedBranch /> : <AnalyticsTab branchId={branch} />)}
 
       {current === 'managers' && <SchedulePage />}
 

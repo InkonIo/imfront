@@ -2,12 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { errorText } from '../admin/ui'
 import { sheetApi } from './api'
-import type { Sheet } from './api'
+import type { PriorityTpl, Sheet, SheetAuto } from './api'
 import { AFTER, DANGER_ZONES, DURING, DURING_TOP, EXPIRY, GOALS, HOURLY, HOURS, PREP, SPECIAL } from './schema'
 import type { SheetItem } from './schema'
 import './sheet.css'
+import './sheet-extra.css'
 
 type Part = 'm' | 'e'
+
+// goal = строка «Цели на текущий день», куда попадает доля канала (у прилавка такой строки нет)
+const CHANNELS: { key: string; title: string; col: RegExp; goal?: string }[] = [
+  { key: 'pct.counter', title: 'Прилавок', col: /^прилавок/i },
+  { key: 'pct.kiosk', title: 'Киоски', col: /^киоск/i, goal: 'kiosk' },
+  { key: 'pct.delivery', title: 'Delivery', col: /^deliv/i, goal: 'dlv' },
+  { key: 'pct.mobile', title: 'Мобилка', col: /^моб/i, goal: 'mobile' },
+  { key: 'pct.postamat', title: 'Постамат', col: /^постам/i, goal: 'postomat' },
+]
 
 const toNum = (s: string) => {
   const n = Number(s.replace(/\s/g, '').replace(',', '.'))
@@ -15,7 +25,7 @@ const toNum = (s: string) => {
 }
 const fmtNum = (n: number) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100).replace('.', ','))
 
-export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
+export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?: number; readOnly?: boolean }) {
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const [values, setValues] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
@@ -23,6 +33,13 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
   const pending = useRef<Record<string, string | null>>({})
   const timer = useRef(0)
   const idRef = useRef<number | null>(null)
+  const [auto, setAuto] = useState<SheetAuto | null>(null)
+  const filled = useRef(false)
+  const applyRef = useRef<(overwrite: boolean) => void>(() => {})
+  const [tpls, setTpls] = useState<PriorityTpl[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [note, setNote] = useState('')
+  const [overSlot, setOverSlot] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -40,6 +57,33 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
       cancelled = true
     }
   }, [sheetId])
+
+  // данные из отчёта iiko для автозаполнения (только когда бланк можно править)
+  useEffect(() => {
+    if (!sheet || !sheet.editable || readOnly) return
+    let cancelled = false
+    sheetApi
+      .auto(sheet.id)
+      .then((a) => {
+        if (!cancelled) setAuto(a)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [sheet, readOnly])
+
+  useEffect(() => {
+    if (!sheet || !sheet.editable || readOnly) return
+    sheetApi.priorities(sheet.outletId).then(setTpls).catch(() => {})
+  }, [sheet, readOnly])
+
+  // первый раз подставляем только в пустые поля
+  useEffect(() => {
+    if (!sheet || !auto || filled.current) return
+    filled.current = true
+    applyRef.current(false)
+  }, [sheet, auto])
 
   const flush = useCallback(async () => {
     const id = idRef.current
@@ -69,7 +113,7 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
     return error ? <div className="error">{error}</div> : <div className="muted">Загрузка…</div>
   }
 
-  const editable = sheet.editable
+  const editable = sheet.editable && !readOnly
   const v = (k: string) => values[k] ?? ''
   const date = sheet.date.split('-').reverse().join('.')
 
@@ -79,6 +123,144 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
     pending.current[key] = value === '' ? null : value
     clearTimeout(timer.current)
     timer.current = window.setTimeout(() => void flush(), 600)
+  }
+
+  const nf = (n: number) => n.toLocaleString('ru-RU')
+  // план по часам: общий GC и Sales, а по каналам GC × доля канала
+  function applyPlan(data: SheetAuto, pcts: Record<string, number>, overwrite: boolean, onlyChannels = false) {
+    const plan = data.planHours ?? []
+    if (!plan.length) return
+    const gcCol = HOURLY.find((c) => c.pair && /^общее/i.test(c.label))
+    const slCol = HOURLY.find((c) => c.pair && /^ежечасно/i.test(c.label))
+    ;(['m', 'e'] as Part[]).forEach((part) => {
+      HOURS[part].forEach((label, i) => {
+        const row = plan.find((x) => x.hour === parseInt(label, 10))
+        if (!row) return
+        const put = (key: string, val: string, force: boolean) => {
+          if (force || !v(key)) set(key, val)
+        }
+        if (!onlyChannels) {
+          if (gcCol) put(`hr.${part}.${i}.${gcCol.id}.p`, nf(row.gc), overwrite)
+          if (slCol) put(`hr.${part}.${i}.${slCol.id}.p`, nf(row.sales), overwrite)
+        }
+        for (const ch of CHANNELS) {
+          const col = HOURLY.find((c) => c.pair && ch.col.test(c.label))
+          if (col) put(`hr.${part}.${i}.${col.id}.p`, nf(Math.round((row.gc * (pcts[ch.key] ?? 0)) / 100)), overwrite || onlyChannels)
+        }
+      })
+    })
+  }
+
+  // менеджер поменял долю канала: пересчитываем плановые значения каналов по всем часам
+  function setPct(key: string, value: string) {
+    set(key, value)
+    const ch = CHANNELS.find((c) => c.key === key)
+    if (ch?.goal) set(`goal.${ch.goal}.goal`, value.trim() ? `${value.trim()}%` : '')
+    if (!auto) return
+    const pcts: Record<string, number> = {}
+    for (const c of CHANNELS) pcts[c.key] = toNum(c.key === key ? value : v(c.key)) ?? 0
+    applyPlan(auto, pcts, true, true)
+  }
+
+  function applyAuto(overwrite: boolean, data: SheetAuto | null = auto) {
+    if (!data) return
+    const rows: [string, 'sales' | 'gc' | 'avgCheck'][] = [
+      ['sales', 'sales'],
+      ['gc', 'gc'],
+      ['av.check', 'avgCheck'],
+    ]
+    for (const [label, f] of rows) {
+      const g = GOALS.find((x) => x.label.trim().toLowerCase() === label)
+      if (!g) continue
+      const pk = `goal.${g.id}.prev`
+      const gk = `goal.${g.id}.goal`
+      if (data.prev && (overwrite || !v(pk))) set(pk, nf(data.prev[f]))
+      if (data.goal && (overwrite || !v(gk))) set(gk, nf(data.goal[f]))
+    }
+
+    // доли каналов: если пусто, берём из прошлого бланка точки (или стандартные)
+    const pctNow: Record<string, number> = {}
+    for (const c of CHANNELS) {
+      if ((overwrite || !v(c.key)) && data.pcts?.[c.key]) set(c.key, data.pcts[c.key])
+      const val = v(c.key) || data.pcts?.[c.key] || ''
+      pctNow[c.key] = toNum(val) ?? 0
+      if (c.goal && val && (overwrite || !v(`goal.${c.goal}.goal`))) set(`goal.${c.goal}.goal`, `${val}%`)
+    }
+    applyPlan(data, pctNow, overwrite)
+
+    // почасовые таблицы: GC (факт), Sales (факт), средний чек по накоплению
+    const hours = data.hours ?? []
+    if (hours.length) {
+      const gcCol = HOURLY.find((c) => c.pair && /^общее/i.test(c.label))
+      const slCol = HOURLY.find((c) => c.pair && /^ежечасно/i.test(c.label))
+      const avCol = HOURLY.find((c) => !c.pair && /накоплению/i.test(c.label))
+      ;(['m', 'e'] as Part[]).forEach((part) => {
+        HOURS[part].forEach((label, i) => {
+          const hour = parseInt(label, 10)
+          const row = hours.find((x) => x.hour === hour)
+          if (!row) return
+          const put = (key: string, val: string) => {
+            if (overwrite || !v(key)) set(key, val)
+          }
+          if (gcCol) put(`hr.${part}.${i}.${gcCol.id}.f`, nf(row.guests))
+          if (slCol) put(`hr.${part}.${i}.${slCol.id}.f`, nf(row.sales))
+          if (avCol) {
+            const upto = hours.filter((x) => x.hour >= 10 && x.hour <= hour)
+            const g = upto.reduce((a, x) => a + x.guests, 0)
+            const s = upto.reduce((a, x) => a + x.sales, 0)
+            if (g > 0) put(`hr.${part}.${i}.${avCol.id}.v`, nf(Math.round(s / g)))
+          }
+        })
+      })
+    }
+  }
+  applyRef.current = applyAuto
+
+  async function uploadReport(f: File | undefined) {
+    if (!f || !sheet) return
+    setUploading(true)
+    setNote('')
+    setError('')
+    try {
+      const buf = new Uint8Array(await f.arrayBuffer())
+      let bin = ''
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+      const r = await sheetApi.importSales(sheet.id, f.name, btoa(bin))
+      const fresh = await sheetApi.auto(sheet.id)
+      setAuto(fresh)
+      applyAuto(true, fresh)
+      const ru = (s: string) => s.split('-').reverse().join('.')
+      setNote(`Отчёт загружен: ${ru(r.from)} – ${ru(r.to)}, гостей ${r.guests.toLocaleString('ru-RU')}. Цифры подставлены, их можно поправить.`)
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // ---------- приоритеты дня: шаблоны перетаскиваются в слоты 1–3 ----------
+  const dropTo = (n: number, text: string) => set(`prio.${n}`, text)
+  const pickTpl = (text: string) => {
+    const free = [1, 2, 3].find((n) => !v(`prio.${n}`))
+    if (free) dropTo(free, text)
+  }
+  const cats = Array.from(new Set(tpls.map((x) => x.category ?? 'Другое')))
+
+  const autoNote = () => {
+    if (!editable || !auto) return null
+    if (!auto.mapped) {
+      return <div className="muted small sh-noprint">Точка не привязана к ресторану из тайм-трекера, поэтому цифры из отчёта iiko не подставляются.</div>
+    }
+    const d = (s: string) => s.split('-').reverse().slice(0, 2).join('.')
+    return (
+      <div className="muted small sh-noprint">
+        {auto.prev ? `Результат за ${d(auto.prevDate)} из отчёта iiko. ` : `За ${d(auto.prevDate)} нет данных: загрузи Excel в «Расписание → Аналитика». `}
+        {auto.goal && auto.basis ? `Цели: среднее за ${auto.basis.map(d).join(', ')} + ${auto.pct}%. ` : 'Для целей не хватает прошлых недель в отчёте. '}
+        <button className="btn small" onClick={() => applyAuto(true)}>
+          Подставить заново
+        </button>
+      </div>
+    )
   }
 
   // ---------- куски разметки: обычные функции, НЕ компоненты (иначе слетает фокус) ----------
@@ -209,10 +391,27 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
           {status === 'saving' ? 'Сохраняем…' : status === 'saved' ? '✓ Сохранено' : status === 'error' ? '⚠ Не сохранилось' : ''}
           {!editable && ' Только просмотр'}
         </span>
+        {editable && (
+          <label className="btn small sh-upload">
+            {uploading ? 'Загружаем…' : '📥 Загрузить отчёт iiko (Excel)'}
+            <input
+              type="file"
+              accept=".xlsx"
+              hidden
+              disabled={uploading}
+              onChange={(e) => {
+                void uploadReport(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </label>
+        )}
         <button className="btn small" onClick={() => window.print()}>
           🖨 Печать
         </button>
       </div>
+      {autoNote()}
+      {note && <div className="muted small sh-noprint">{note}</div>}
       {error && <div className="error sh-noprint">{error}</div>}
 
       <div className="sheet">
@@ -302,12 +501,57 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
 
         <div className="sh-block">
           <div className="sh-section">ЦЕЛИ НА ДЕНЬ</div>
-          {[1, 2, 3].map((n) => (
-            <div key={n}>
-              <div className="sh-section light">Приоритет {n}</div>
-              {area(`prio.${n}`, 2)}
+          <div className="sh-prio-wrap">
+            <div>
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className={overSlot === n ? 'sh-slot-over' : ''}
+                  onDragOver={(e) => {
+                    if (!editable) return
+                    e.preventDefault()
+                    setOverSlot(n)
+                  }}
+                  onDragLeave={() => setOverSlot((o) => (o === n ? null : o))}
+                  onDrop={(e) => {
+                    const text = e.dataTransfer.getData('application/x-prio')
+                    setOverSlot(null)
+                    if (!editable || !text) return
+                    e.preventDefault()
+                    dropTo(n, text)
+                  }}
+                >
+                  <div className="sh-section light">Приоритет {n}</div>
+                  {area(`prio.${n}`, 2)}
+                </div>
+              ))}
             </div>
-          ))}
+            {editable && tpls.length > 0 && (
+              <aside className="sh-prio-pal sh-noprint">
+                <h4>Шаблоны приоритетов</h4>
+                <div className="muted small">Перетащи в слот слева или нажми, текст можно поправить.</div>
+                {cats.map((c) => (
+                  <div key={c}>
+                    <div className="cat">{c}</div>
+                    {tpls
+                      .filter((x) => (x.category ?? 'Другое') === c)
+                      .map((x) => (
+                        <button
+                          key={x.id}
+                          type="button"
+                          className="sh-chip"
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData('application/x-prio', x.title)}
+                          onClick={() => pickTpl(x.title)}
+                        >
+                          {x.title}
+                        </button>
+                      ))}
+                  </div>
+                ))}
+              </aside>
+            )}
+          </div>
         </div>
 
         <div className="sh-block">
@@ -337,6 +581,39 @@ export default function ShiftSheetPage({ sheetId }: { sheetId?: number }) {
         </div>
 
         <div className="sh-block">
+          <div className="sh-pctbar">
+            <div className="sh-pct-head">
+              <b>Доли каналов от общего GC</b>
+              <span className="muted small">план по каналам в таблицах ниже = общий GC × доля</span>
+            </div>
+            <div className="sh-pct-row">
+              {CHANNELS.map((c) => (
+                <div key={c.key} className="sh-pct">
+                  <span className="sh-pct-title">{c.title}</span>
+                  <span className="sh-pct-box">
+                    <input
+                      className="sh-pct-in"
+                      inputMode="numeric"
+                      value={v(c.key)}
+                      disabled={!editable}
+                      onChange={(e) => setPct(c.key, e.target.value)}
+                    />
+                    <span className="sh-pct-sign">%</span>
+                  </span>
+                </div>
+              ))}
+              {(() => {
+                const sum = CHANNELS.reduce((a, c) => a + (toNum(v(c.key)) ?? 0), 0)
+                return (
+                  <div className={sum === 100 ? 'sh-pct-sum ok' : 'sh-pct-sum warn'}>
+                    <span className="sh-pct-title">Сумма</span>
+                    <b>{fmtNum(sum)}%</b>
+                    {sum !== 100 && <span className="small">должно быть 100%</span>}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
           {hourlyTable('m')}
           {statusLines('m', 'Статус за утро по приоритетам:')}
         </div>

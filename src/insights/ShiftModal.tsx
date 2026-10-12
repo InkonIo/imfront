@@ -107,6 +107,27 @@ export function CountModal({ id, onClose }: { id: number; onClose: () => void })
   const s = useAsync(() => ins.invCount(id), [id])
   const [q, setQ] = useState('')
   const [bad, setBad] = useState(false)
+  const [fb, setFb] = useState<Row[] | null>(null)
+  const [editId, setEditId] = useState<number | null>(null)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const feedback: Row[] = fb ?? s.data?.feedback ?? []
+  const send = async (lineId: number) => {
+    if (!text.trim() || busy) return
+    setBusy(true)
+    setErr('')
+    try {
+      const r = await ins.invFeedback(id, lineId, text.trim())
+      setFb(r.feedback)
+      setEditId(null)
+      setText('')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Не удалось отправить')
+    } finally {
+      setBusy(false)
+    }
+  }
   const lines = useMemo<Row[]>(() => {
     const L: Row[] = s.data?.lines ?? []
     return L.filter(l => (!bad || l.anomaly) && (!q || String(l.product).toLowerCase().includes(q.toLowerCase())))
@@ -123,6 +144,7 @@ export function CountModal({ id, onClose }: { id: number; onClose: () => void })
               <label className="ins-check"><input type="checkbox" checked={bad} onChange={e => setBad(e.target.checked)} /> только аномалии</label>
               <span className="ins-sub">{lines.length} из {d.lines.length} позиций</span>
             </div>
+            {err && <div className="ins-empty">{err}</div>}
             <Table<Row> rows={lines} sortKey="" rowClass={r => (r.anomaly ? 'is-anom' : '')} cols={[
               { key: 'zone', title: 'Зона', sort: r => r.zone, className: () => 'ins-mute' },
               { key: 'product', title: 'Товар', sort: r => r.product, render: r => <button className="ins-link" onClick={() => openProduct(num(r.product_id), r.product)}>{r.product}</button> },
@@ -134,6 +156,24 @@ export function CountModal({ id, onClose }: { id: number; onClose: () => void })
               { key: 'diff', title: 'Δ', align: 'right', sort: r => Math.abs(num(r.diff)), render: r => r.diff == null ? '—' : <span>{num(r.diff) > 0 ? '+' : ''}{fmt(r.diff, 1)}{r.diff_pct != null && <small> ({r.diff_pct}%)</small>}</span> },
               { key: 'confirmed', title: '✓', align: 'center', render: r => r.confirmed ? '✓' : '' },
               { key: 'anomaly', title: '', render: r => r.anomaly ? <Pill kind="warn">аномалия</Pill> : '' },
+              { key: 'fb', title: 'Замечание', render: r => {
+                const mine = feedback.filter(x => num(x.line_id) === num(r.line_id))
+                return (
+                  <div>
+                    {mine.map(x => <div key={x.id} className="ins-note">💬 {x.comment} <span className="ins-mute">· {x.author}, {dt(x.at)}</span></div>)}
+                    {editId === num(r.line_id) ? (
+                      <div className="ins-filters inline">
+                        <input className="ins-input" autoFocus maxLength={500} placeholder="Что исправить…" value={text}
+                          onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void send(num(r.line_id)) }} />
+                        <button className="ins-link" disabled={busy || !text.trim()} onClick={() => void send(num(r.line_id))}>Отправить</button>
+                        <button className="ins-link" onClick={() => { setEditId(null); setText('') }}>Отмена</button>
+                      </div>
+                    ) : (
+                      <button className="ins-link" onClick={() => { setEditId(num(r.line_id)); setText('') }}>＋ написать</button>
+                    )}
+                  </div>
+                )
+              } },
             ]} />
           </div>
         )}
