@@ -14,6 +14,7 @@ import ShelfPage from '../shelf/ShelfPage'
 import ScheduleHub from '../sched/ScheduleHub'
 import { useCaps } from '../sched/useCaps'
 import './inside.css'
+import NoteBoard from '../board/NoteBoard'
 
 type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf' | 'sched'
 
@@ -222,6 +223,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
             {current.id === 'sched' && <ScheduleHub onChanged={() => void refreshCaps()} />}
           </>
         )}
+      <NoteBoard outletId={shift.outletId} />
       </main>
     </div>
   )

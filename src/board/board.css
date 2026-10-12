@@ -1,0 +1,333 @@
+/* ---------- красная кнопка «!» справа, поверх всего ---------- */
+.nb-fab {
+  position: fixed;
+  z-index: 900;
+  right: 0;
+  top: 42%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 56px;
+  padding: 0 4px 0 0;
+  border: 0;
+  border-radius: 16px 0 0 16px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 900;
+  box-shadow: -4px 6px 18px rgba(220, 53, 69, 0.4);
+  cursor: pointer;
+}
+.nb-fab:hover {
+  width: 52px;
+}
+.nb-fab:not(.alert) {
+  background: #64748b;
+  box-shadow: -4px 6px 18px rgba(100, 116, 139, 0.35);
+}
+.nb-fab.alert span {
+  animation: nb-pulse 2.2s ease-in-out infinite;
+}
+.nb-fab i {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: #dc3545;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+@keyframes nb-pulse {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+/* ---------- панель ---------- */
+.nb-shade {
+  position: fixed;
+  z-index: 950;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+.nb-panel {
+  position: fixed;
+  z-index: 960;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(420px, 100vw);
+  padding: 18px 16px;
+  overflow-y: auto;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.25);
+  transform: translateX(105%);
+  transition: transform 0.22s ease;
+}
+.nb-panel.open {
+  transform: none;
+}
+.nb-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.nb-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.nb-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.nb-x {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.nb-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.nb-tools select,
+.nb-form select,
+.nb-form input,
+.nb-form textarea,
+.nb-confirm input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+.nb-tools select {
+  width: auto;
+  flex: 1;
+}
+.nb-check {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.nb-check input {
+  width: auto;
+}
+.nb-error {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(220, 53, 69, 0.1);
+  color: #b4232f;
+  font-size: 13px;
+}
+.nb-add {
+  padding: 12px;
+  border: 1.5px dashed var(--accent);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nb-form,
+.nb-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nb-form {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card-2);
+}
+.nb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.nb-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nb-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.nb-btn:disabled {
+  opacity: 0.6;
+}
+.nb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nb-empty {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ---------- карточка заметки ---------- */
+.nb-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid #dc3545;
+  border-radius: 14px;
+  background: var(--card);
+}
+.nb-note.s-in_progress {
+  border-left-color: #f59e0b;
+}
+.nb-note.s-done {
+  border-left-color: #16a34a;
+  opacity: 0.8;
+}
+.nb-note h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.nb-body {
+  margin: 0;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.nb-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nb-outlet {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+.nb-del {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.6;
+}
+.nb-del:hover {
+  opacity: 1;
+}
+.nb-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.nb-chip.s-open {
+  background: rgba(220, 53, 69, 0.12);
+  color: #b4232f;
+}
+.nb-chip.s-in_progress {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+.nb-chip.s-done {
+  background: rgba(22, 163, 74, 0.14);
+  color: #15803d;
+}
+.nb-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.nb-meta b {
+  color: var(--text);
+}
+.nb-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+.nb-seg button {
+  padding: 7px 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nb-seg button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.nb-seg button.on {
+  color: #fff;
+  border-color: transparent;
+}
+.nb-seg button.on.s-open {
+  background: #dc3545;
+}
+.nb-seg button.on.s-in_progress {
+  background: #f59e0b;
+}
+.nb-seg button.on.s-done {
+  background: #16a34a;
+}
+.nb-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nb-log {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.nb-log b {
+  color: var(--text);
+}

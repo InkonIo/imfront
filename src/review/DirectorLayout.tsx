@@ -10,6 +10,7 @@ import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
 import SheetArchive from '../sheet/SheetArchive'
 import PrioritiesPage from '../priorities/PrioritiesPage'
+import NoteBoard from '../board/NoteBoard'
 import '../admin/admin.css'
 import '../inside/inside.css'
 import './review.css'
@@ -126,6 +127,7 @@ export default function DirectorLayout() {
         {current.id === 'shelf' && <ShelfPage />}
         {current.id === 'sheets' && <SheetArchive />}
         {current.id === 'priorities' && <PrioritiesPage />}
+      <NoteBoard />
       </main>
     </div>
   )

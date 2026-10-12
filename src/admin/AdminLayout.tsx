@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import NoteBoard from '../board/NoteBoard'
 import { useAuth } from '../auth'
 import ReviewQueue from '../review/ReviewQueue'
 import AuditHub from './AuditHub'
@@ -116,6 +117,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         {current.id === 'inventory' && <InventoryHistory />}
         {current.id === 'sheets' && <SheetArchive />}
         {current.id === 'priorities' && <PrioritiesPage />}
+      <NoteBoard />
       </main>
     </div>
   )
