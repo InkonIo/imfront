@@ -86,3 +86,108 @@
 .shelf-modal .shelf-btn:disabled { opacity: .5; }
 .shelf-modal .shelf-err { color: var(--sh-red); margin-top: 10px; }
 .shelf-search input[type="search"]::-webkit-search-cancel-button, .shelf-search input[type="search"]::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+
+
+/* ===== «Сроки хранения»: строка поиска — вставить В КОНЕЦ shelf.css ===== */
+
+.shelf .shelf-top {
+  gap: 12px;
+  padding: 6px 0 10px;
+  background: transparent;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* одна аккуратная «пилюля»: рамка и подсветка только у контейнера */
+.shelf .shelf-search {
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 10px 0 18px;
+  border: 1.5px solid var(--sh-line);
+  border-radius: 999px;
+  background: var(--sh-card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.shelf .shelf-search:hover {
+  border-color: #dcdbd2;
+}
+.shelf .shelf-search:focus-within {
+  border-color: var(--sh-brand);
+  box-shadow: 0 0 0 4px rgba(252, 182, 20, 0.22);
+}
+
+/* сам input — «голый»: глобальные стили полей (рамка, скругление, тень, фон) сбрасываем */
+.shelf .shelf-search input,
+.shelf .shelf-search input:hover,
+.shelf .shelf-search input:focus,
+.shelf .shelf-search input:focus-visible {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--sh-text);
+}
+.shelf .shelf-search input::placeholder {
+  color: var(--sh-mute);
+  opacity: 0.8;
+}
+
+/* лупа: вместо эмодзи — аккуратная иконка в цвет текста */
+.shelf .shelf-search > span[aria-hidden] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: 0;
+  background-color: var(--sh-mute);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.shelf .shelf-search:focus-within > span[aria-hidden] {
+  background-color: var(--sh-brand-ink);
+}
+
+/* кнопка очистки */
+.shelf .shelf-clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sh-soft);
+  color: var(--sh-mute);
+  font-size: 13px;
+  line-height: 1;
+}
+.shelf .shelf-clear:hover {
+  background: var(--sh-line);
+  color: var(--sh-text);
+}
+
+/* «Редактировать» — той же высоты и формы, что и поиск */
+.shelf .shelf-top .shelf-btn {
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 999px;
+}
+
+@media (max-width: 560px) {
+  .shelf .shelf-top .shelf-btn {
+    padding: 0 16px;
+  }
+}

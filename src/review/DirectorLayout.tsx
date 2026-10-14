@@ -10,6 +10,7 @@ import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
 import SheetArchive from '../sheet/SheetArchive'
 import PrioritiesPage from '../priorities/PrioritiesPage'
+import ScheduleHub from '../sched/ScheduleHub'
 import NoteBoard from '../board/NoteBoard'
 import '../admin/admin.css'
 import '../inside/inside.css'
@@ -17,7 +18,7 @@ import './review.css'
 import RatingPage from '../rating/RatingPage'
 
 
-type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf' | 'sheets' | 'priorities'
+type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf' | 'sheets' | 'priorities' | 'schedule'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
@@ -27,6 +28,7 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Смены, менеджеры, инвентаризация, сравнение' },
   { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' },
   { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
+  { id: 'schedule', icon: '🗓', label: 'График менеджеров', hint: 'Составь и опубликуй расписание менеджеров своих точек' },
   { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня для своих точек' },
 ]
 
@@ -127,6 +129,7 @@ export default function DirectorLayout() {
         {current.id === 'shelf' && <ShelfPage />}
         {current.id === 'sheets' && <SheetArchive />}
         {current.id === 'priorities' && <PrioritiesPage />}
+        {current.id === 'schedule' && <ScheduleHub />}
       <NoteBoard />
       </main>
     </div>

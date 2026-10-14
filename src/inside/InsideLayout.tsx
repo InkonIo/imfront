@@ -15,6 +15,7 @@ import ScheduleHub from '../sched/ScheduleHub'
 import { useCaps } from '../sched/useCaps'
 import './inside.css'
 import NoteBoard from '../board/NoteBoard'
+import { SHOW_TIMETRACKER } from '../sched/flags'
 
 type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf' | 'sched'
 
@@ -83,7 +84,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
   if (!shift) return null
 
     const sections = SECTIONS.filter(
-    (s) => (!s.eveningOnly || shift.dayPart === 'EVENING') && (!s.insideOnly || shift.shiftRole === 'INSIDE') && (!s.schedOnly || caps?.canManageSchedule === true),
+    (s) => (!s.eveningOnly || shift.dayPart === 'EVENING') && (!s.insideOnly || shift.shiftRole === 'INSIDE') && (!s.schedOnly || (SHOW_TIMETRACKER && caps?.canManageSchedule === true)),
   )
   const current = sections.find((s) => s.id === active) ?? sections[0]
   const started = new Date(shift.startedAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })

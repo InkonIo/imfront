@@ -3,6 +3,8 @@ import { planApi } from './planApi'
 import { extApi } from '../ext/api'
 import type { Overview, OverviewCell } from './planApi'
 import WeekNav from './WeekNav'
+import DayEditor from '../ext/DayEditor'
+import type { DayTarget } from '../ext/DayEditor'
 import { clk, dayLabel, errText, mondayOf, parseIso, posClass, shortName, toIso } from './planUtil'
 import './plan.css'
 
@@ -11,18 +13,21 @@ const ABS: [RegExp, string][] = [[/vac/i, 'отпуск'], [/sick/i, 'больн
 const absLabel = (t?: string) => ABS.find(([re]) => re.test(t ?? ''))?.[1] ?? 'нет'
 
 /** Общий график: все (менеджеры, инструкторы, сотрудники): кто, когда, во сколько и на какой позиции. */
-export default function OverviewTab({ branchId }: { branchId: number }) {
+export default function OverviewTab({ branchId, canEdit = false }: { branchId: number; canEdit?: boolean }) {
   const today = toIso(new Date())
   const [from, setFrom] = useState(mondayOf(today))
   const [data, setData] = useState<Overview | null>(null)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
-  const [who, setWho] = useState<'ALL' | 'MANAGER' | 'STAFF'>('ALL')
+  // Показываем только менеджеров (фильтр «Все / Сотрудники» скрыт — раскомментируй setWho и блок ниже, чтобы вернуть)
+  const [who] = useState<'ALL' | 'MANAGER' | 'STAFF'>('MANAGER')
+  // const [who, setWho] = useState<'ALL' | 'MANAGER' | 'STAFF'>('ALL')
   const [hideEmpty, setHideEmpty] = useState(false)
   const [dayF, setDayF] = useState<number | null>(null)
   const [tick, setTick] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [note, setNote] = useState('')
+  const [edit, setEdit] = useState<DayTarget | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -56,6 +61,17 @@ export default function OverviewTab({ branchId }: { branchId: number }) {
       .filter((g) => g.rows.length > 0)
   }, [data, q, who, hideEmpty, dayF])
 
+  /** Что показать в окне правки дня. */
+  function target(r: { id: number; name: string }, i: number, c: OverviewCell): DayTarget {
+    const day = data!.days[i]
+    const now = c.kind === 'SHIFT' ? `${c.start}–${clk(c.end)}` : c.kind === 'OFF' ? 'выходной' : absLabel(c.note)
+    const tt = c.ttStart != null ? `${c.ttStart}–${clk(c.ttEnd)}` : c.ttNote != null ? 'выходной/отсутствие' : null
+    return {
+      employeeId: r.id, name: r.name, day, dayTitle: dayLabel(day), now, tt, edited: false,
+      warn: c.kind === 'ABSENCE' ? `В Таймтрекере тут: ${absLabel(c.note)}` : null,
+    }
+  }
+
   const onShift = (i: number) => data ? data.rows.filter((r) => r.cells[i]?.kind === 'SHIFT' && !r.cells[i]?.noShow).length : 0
 
   return (
@@ -63,13 +79,15 @@ export default function OverviewTab({ branchId }: { branchId: number }) {
       <div className="pl-bar">
         <WeekNav from={from} onChange={setFrom} home={mondayOf(today)} homeLabel="Эта неделя" />
         <input className="ext-input" type="search" placeholder="Поиск по имени" value={q} onChange={(e) => setQ(e.target.value)} style={{ maxWidth: 260 }} />
+        {/* Фильтр «Все / Менеджеры / Сотрудники» скрыт:
         <div className="sch-seg">
           <button className={who === 'ALL' ? 'on' : ''} onClick={() => setWho('ALL')}>Все</button>
           <button className={who === 'MANAGER' ? 'on' : ''} onClick={() => setWho('MANAGER')}>Менеджеры</button>
           <button className={who === 'STAFF' ? 'on' : ''} onClick={() => setWho('STAFF')}>Сотрудники</button>
         </div>
+        */}
         <label className="ext-check"><input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} /> Скрыть без смен</label>
-        <button className="ext-btn" disabled={syncing} onClick={() => void syncNow()}>{syncing ? 'Обновляю…' : 'Обновить из ТТ'}</button>
+        <button className="ext-btn" disabled={syncing} onClick={() => void syncNow()}>{syncing ? 'Обновляю…' : 'Обновить'}</button>
         {dayF != null && data && <button className="ext-btn sm" onClick={() => setDayF(null)}>Только {dayLabel(data.days[dayF])} ✕</button>}
       </div>
       {data && data.ttSyncedMin != null && data.ttSyncedMin > 120 && (
@@ -97,7 +115,14 @@ export default function OverviewTab({ branchId }: { branchId: number }) {
                   {g.rows.map((r) => (
                     <tr key={r.id} className={r.any ? '' : 'ov-dim'}>
                       <th className="pl-rowh" title={r.name}>{shortName(r.name)}</th>
-                      {r.cells.map((c, i) => <td key={i} className={data.days[i] === today ? 'today' : ''}><Cell c={c} /></td>)}
+                      {r.cells.map((c, i) => (
+                        <td key={i} className={data.days[i] === today ? 'today' : ''}
+                          style={canEdit && c ? { cursor: 'pointer' } : undefined}
+                          title={canEdit && c ? 'Нажмите, чтобы исправить время или поставить выходной' : undefined}
+                          onClick={canEdit && c ? () => setEdit(target(r, i, c)) : undefined}>
+                          <Cell c={c} />
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </GroupRows>
@@ -117,6 +142,8 @@ export default function OverviewTab({ branchId }: { branchId: number }) {
         Главный источник — Таймтрекер: кто и когда работает. Позиция берётся из нашего графика (пунктир — черновик, ещё не опубликован). Для будущих дней, которых ещё нет в Таймтрекере, показан наш график{data?.ttSyncedAt ? `, обновлено ${data.ttSyncedAt}` : ''}.
         Метка «≠ТТ» — в Таймтрекере у человека другое время или выходной; «план …» — в плане было иначе; «замена» — человек вышел вместо другого; «не вышел» — в Таймтрекере нет пробития спустя 3 часа после начала смены. В строке «На смене» такие не считаются.
       </p>
+      {canEdit && <p className="muted-s">Нажмите на клетку, чтобы исправить время смены или поставить выходной. Правка сохраняется у нас и не затирается обновлением из ТТ.</p>}
+      {edit && <DayEditor t={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); setTick((x) => x + 1) }} />}
     </>
   )
 }

@@ -115,10 +115,18 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
 
   const editable = sheet.editable && !readOnly
   const v = (k: string) => values[k] ?? ''
+  // утро правит утренний менеджер, вечер — вечерний; общие поля (цели, приоритеты) — оба
+  const myParts = values._parts ?? 'me'
+  const PART_KEY = /^(?:(?:chk|exp)\.[^.]+\.(m|e)|(?:hr|status)\.(m|e)\..+)$/
+  const canKey = (k: string) => {
+    if (!editable) return false
+    const m = PART_KEY.exec(k)
+    return !m || myParts.includes(m[1] ?? m[2])
+  }
   const date = sheet.date.split('-').reverse().join('.')
 
   function set(key: string, value: string) {
-    if (!editable) return
+    if (!canKey(key)) return
     setValues((prev) => ({ ...prev, [key]: value }))
     pending.current[key] = value === '' ? null : value
     clearTimeout(timer.current)
@@ -270,18 +278,18 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
       className={className}
       value={v(k)}
       placeholder={placeholder}
-      disabled={!editable}
+      disabled={!canKey(k)}
       onChange={(e) => set(k, e.target.value)}
     />
   )
 
   const area = (k: string, rows = 3) => (
-    <textarea className="sh-area" rows={rows} value={v(k)} disabled={!editable} onChange={(e) => set(k, e.target.value)} />
+    <textarea className="sh-area" rows={rows} value={v(k)} disabled={!canKey(k)} onChange={(e) => set(k, e.target.value)} />
   )
 
   const check = (k: string) => (
     <td className="sh-cb">
-      <input type="checkbox" checked={v(k) === '1'} disabled={!editable} onChange={() => set(k, v(k) === '1' ? '' : '1')} />
+      <input type="checkbox" checked={v(k) === '1'} disabled={!canKey(k)} onChange={() => set(k, v(k) === '1' ? '' : '1')} />
     </td>
   )
 
@@ -390,6 +398,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
         <span className="muted small">
           {status === 'saving' ? 'Сохраняем…' : status === 'saved' ? '✓ Сохранено' : status === 'error' ? '⚠ Не сохранилось' : ''}
           {!editable && ' Только просмотр'}
+          {editable && myParts !== 'me' && ` · Вы заполняете: ${myParts === 'm' ? 'утро' : 'вечер'}`}
         </span>
         {editable && (
           <label className="btn small sh-upload">

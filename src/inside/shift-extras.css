@@ -1,0 +1,119 @@
+.sx {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.sx *,
+.sx *::before,
+.sx *::after {
+  box-sizing: border-box;
+}
+.sx h3 {
+  margin: 12px 0 0;
+  font-size: 16px;
+}
+.sx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.sx-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--card-2);
+}
+.sx-card span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.sx-card b {
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--text);
+}
+.sx-card small {
+  font-size: 12.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sx-card.good b {
+  color: #15803d;
+}
+.sx-card.bad b {
+  color: #dc3545;
+}
+.sx-card i,
+.sx-ch i {
+  display: block;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.sx-card u,
+.sx-ch u {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  text-decoration: none;
+}
+.sx-goals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.sx-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+}
+.sx-goal span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.sx-goal b {
+  font-size: 22px;
+}
+.sx-goal small {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.sx-channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+}
+.sx-ch > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.sx-ch span {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sx-ch b {
+  font-size: 18px;
+}
+.sx-ch small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}

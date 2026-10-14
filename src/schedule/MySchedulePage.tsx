@@ -5,7 +5,9 @@ import { scheduleApi } from './api'
 import { WEEKDAY_SHORT, limitText, shiftLabel } from './types'
 import type { Limit, MySlot } from './types'
 import './schedule.css'
+import './week-availability.css'
 import DatePicker from './DatePicker'
+import WeekAvailability from './WeekAvailability'
 
 const DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const iso = (d: Date) => d.toLocaleDateString('en-CA')
@@ -122,9 +124,9 @@ function LimitsPanel({ limits, onChange }: { limits: Limit[] | null; onChange: (
 
   return (
     <section className="panel my-limits">
-      <h2>🙅 Когда я не могу</h2>
+      <h2>🗓 Когда я могу работать</h2>
       <p className="muted small">
-        Директор учитывает это при составлении графика. Если ничего не указано, ты доступен полностью: до 5 смен в неделю.
+        Отметь по дням, когда можешь: весь день, офф, утро, вечер или своё время. Директор учтёт это при составлении графика. Если ничего не указано, ты свободен: до 5 смен в неделю.
       </p>
 
       {limits && limits.length > 0 && (
@@ -141,6 +143,10 @@ function LimitsPanel({ limits, onChange }: { limits: Limit[] | null; onChange: (
         </div>
       )}
 
+      <WeekAvailability onChange={onChange} />
+
+      <details className="wk-adv">
+        <summary>Постоянные правила (например, «никогда по средам»)</summary>
       <div className="my-limit-form">
         <div className="my-days">
           {WEEKDAY_SHORT.map((d, i) => (
@@ -192,6 +198,7 @@ function LimitsPanel({ limits, onChange }: { limits: Limit[] | null; onChange: (
           ＋ Добавить
         </button>
       </div>
+      </details>
     </section>
   )
 }

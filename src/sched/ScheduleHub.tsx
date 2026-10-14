@@ -4,16 +4,19 @@ import { extApi } from '../ext/api'
 import type { ExtBranch } from '../ext/api'
 import SchedulePage from '../schedule/SchedulePage'
 import OverviewTab from './OverviewTab'
-import AnalyticsTab from './AnalyticsTab'
-import WeekView from './WeekView'
-import { AccessTab, RequestsTab } from './StaffAdmin'
-import { KlnPanel, LimitsPanel, PeoplePanel, SlotsPanel, TrainingPanel } from './PlanSetup'
-import { useCaps } from './useCaps'
+import ScheduleImport from './ScheduleImport'
+// Скрыто (закомментировано, чтобы не потерять): аналитика загрузки и вкладка «Сотрудники» из Таймтрекера
+// import AnalyticsTab from './AnalyticsTab'
+// import WeekView from './WeekView'
+// import { AccessTab, RequestsTab } from './StaffAdmin'
+// import { KlnPanel, LimitsPanel, PeoplePanel, SlotsPanel, TrainingPanel } from './PlanSetup'
+// import { useCaps } from './useCaps'
 import './sched.css'
 import './plan.css'
 
-type Top = 'overview' | 'analytics' | 'managers' | 'staff'
-type Sub = 'requests' | 'week' | 'people' | 'settings'
+// type Top = 'overview' | 'analytics' | 'managers' | 'staff'
+// type Sub = 'requests' | 'week' | 'people' | 'settings'
+type Top = 'overview' | 'managers'
 
 const BRANCH_KEY = 'sched.branch'
 const readBranch = () => { try { const v = localStorage.getItem(BRANCH_KEY); return v ? Number(v) : null } catch { return null } }
@@ -24,24 +27,47 @@ function NeedBranch() {
 }
 
 /**
- * Единая страница «Расписание».
- *  - «Общий график»: все (менеджеры и сотрудники) — видят директор, супер-админ и ответственная за расписание;
- *  - «Менеджеры»: график менеджеров — директор и супер-админ;
- *  - «Сотрудники»: заявки, график недели, люди и обучение, настройки — ответственная за расписание и супер-админ.
- * Что показывать, решают роль и /api/me/caps; доступ всё равно проверяет сервер.
+ * Страница «Расписание» для супер-админа и директора.
+ *  - «Общий график»: менеджеры по данным Таймтрекера (кто пришёл, кто не вышел);
+ *  - «Менеджеры»: составление и публикация графика менеджеров.
+ * Вкладки «Аналитика» и «Сотрудники» скрыты (код ниже закомментирован); сервер остался как был.
+ * Доступ всё равно проверяет сервер.
  */
-export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function ScheduleHub(_props: { onChanged?: () => void }) {
   const { user } = useAuth()
-  const { caps, refresh } = useCaps(true, user?.id)
+  // const { caps, refresh } = useCaps(true, user?.id)
   const role = String(user?.accountRole ?? '')
   const isAdmin = role === 'SUPER_ADMIN'
   const canManagers = isAdmin || role === 'DIRECTOR'
-  const canStaff = caps?.canManageSchedule === true
+  // const canStaff = caps?.canManageSchedule === true
 
   const [top, setTop] = useState<Top | null>(null)
-  const [sub, setSub] = useState<Sub>('requests')
+  // const [sub, setSub] = useState<Sub>('requests')
   const [branches, setBranches] = useState<ExtBranch[]>([])
   const [branch, setBranch] = useState<number | null>(readBranch())
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState('')
+  const [syncKey, setSyncKey] = useState(0)
+  const [importing, setImporting] = useState(false)
+
+  /** Подтянуть график из Таймтрекера (этот и следующий месяц) и перерисовать составление графика. */
+  async function syncTt() {
+    setSyncing(true)
+    setSyncMsg('')
+    try {
+      const now = new Date()
+      const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      await extApi.syncSchedule(ym(now))
+      await extApi.syncSchedule(ym(new Date(now.getFullYear(), now.getMonth() + 1, 1)))
+      setSyncKey((k) => k + 1)
+      setSyncMsg('График обновлён ✓')
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : 'Не удалось обновить')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
     extApi.list('', null, false).then((r) => {
@@ -50,18 +76,18 @@ export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
     }).catch(() => {})
   }, [])
 
-  if (!caps && !canManagers) return <div className="ext"><div className="ext-empty">Загрузка…</div></div>
+  if (!canManagers) return <div className="ext"><div className="ext-empty">Нет доступа к расписанию.</div></div>
 
-  const tabs: { id: Top; label: string; badge?: number }[] = []
-  if (canManagers || canStaff) tabs.push({ id: 'overview', label: 'Общий график' })
-  if (canManagers || canStaff) tabs.push({ id: 'analytics', label: 'Аналитика' })
-  if (canManagers) tabs.push({ id: 'managers', label: 'Менеджеры' })
-  if (canStaff) tabs.push({ id: 'staff', label: 'Сотрудники', badge: caps?.pending })
-  const current: Top = top && tabs.some((t) => t.id === top) ? top : tabs[0]?.id ?? 'overview'
-  if (tabs.length === 0) return <div className="ext"><div className="ext-empty">Нет доступа к расписанию.</div></div>
+  const tabs: { id: Top; label: string; badge?: number }[] = [
+    { id: 'overview', label: 'Общий график' },
+    // { id: 'analytics', label: 'Аналитика' },
+    { id: 'managers', label: 'Менеджеры' },
+    // { id: 'staff', label: 'Сотрудники', badge: caps?.pending },
+  ]
+  const current: Top = top && tabs.some((t) => t.id === top) ? top : tabs[0].id
 
-  const subs: [Sub, string][] = [['requests', 'Заявки'], ['week', 'График недели'], ['people', 'Люди и обучение'], ['settings', 'Настройки']]
-  const needsBranch = current === 'overview' || current === 'analytics' || (current === 'staff' && sub !== 'requests')
+  // const subs: [Sub, string][] = [['requests', 'Заявки'], ['week', 'График недели'], ['people', 'Люди и обучение'], ['settings', 'Настройки']]
+  // const needsBranch = current === 'overview' || current === 'analytics' || (current === 'staff' && sub !== 'requests')
 
   return (
     <div className="ext sched">
@@ -76,18 +102,31 @@ export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
         {current !== 'managers' && (
           <select className="ext-input hub-branch" value={branch ?? ''} aria-label="Ресторан"
             onChange={(e) => { const v = e.target.value ? Number(e.target.value) : null; setBranch(v); saveBranch(v) }}>
-            {current === 'staff' && sub === 'requests' && <option value="">Все рестораны</option>}
+            {/* {current === 'staff' && sub === 'requests' && <option value="">Все рестораны</option>} */}
             {branches.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
           </select>
         )}
       </div>
 
-      {current === 'overview' && (branch == null ? <NeedBranch /> : <OverviewTab branchId={branch} />)}
+      {current === 'overview' && (branch == null ? <NeedBranch /> : <OverviewTab key={syncKey} branchId={branch} canEdit />)}
 
-      {current === 'analytics' && (branch == null ? <NeedBranch /> : <AnalyticsTab branchId={branch} />)}
+      {/* {current === 'analytics' && (branch == null ? <NeedBranch /> : <AnalyticsTab branchId={branch} />)} */}
 
-      {current === 'managers' && <SchedulePage />}
+      {current === 'managers' && (
+        <>
+          <div className="sch-bar" style={{ alignItems: 'center' }}>
+            <button className="ext-btn" disabled={syncing} onClick={() => void syncTt()}>{syncing ? 'Обновляю…' : '🔄 Обновить из Таймтрекера'}</button>
+            <button className="ext-btn primary" disabled={branch == null} title={branch == null ? 'Сначала выберите ресторан справа вверху' : ''} onClick={() => setImporting(true)}>📥 Загрузить из Excel</button>
+            {syncMsg && <span className="muted-s">{syncMsg}</span>}
+          </div>
+          {importing && branch != null && (
+            <ScheduleImport branchId={branch} onClose={() => setImporting(false)} onDone={() => setSyncKey((k) => k + 1)} />
+          )}
+          <SchedulePage key={syncKey} />
+        </>
+      )}
 
+      {/* Вкладка «Сотрудники» (заявки, график недели, люди и обучение, настройки) скрыта:
       {current === 'staff' && (
         <>
           <div className="sch-seg hub-sub">
@@ -114,6 +153,7 @@ export default function ScheduleHub({ onChanged }: { onChanged?: () => void }) {
           )}
         </>
       )}
+      */}
     </div>
   )
 }

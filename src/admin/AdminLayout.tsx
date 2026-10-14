@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import NoteBoard from '../board/NoteBoard'
+import { SHOW_TIMETRACKER } from '../sched/flags'
 import { useAuth } from '../auth'
 import ReviewQueue from '../review/ReviewQueue'
 import AuditHub from './AuditHub'
@@ -20,12 +21,12 @@ import PrioritiesPage from '../priorities/PrioritiesPage'
 
 type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'schedule' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'sheets' | 'priorities'
 
-const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
+const ALL_SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
   { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Метрики менеджеров, смены, инвентаризации, сравнение' },
   { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' },
   { id: 'staff', icon: '👥', label: 'Сотрудники', hint: 'Список из Таймтрекера: синхронизация, поиск, филиалы' },
-  { id: 'schedule', icon: '🗓', label: 'Расписание', hint: 'Общий график, менеджеры, сотрудники: заявки, автосборка недели, настройки' },
+  { id: 'schedule', icon: '🗓', label: SHOW_TIMETRACKER ? 'Расписание' : 'График менеджеров', hint: SHOW_TIMETRACKER ? 'Общий график, менеджеры, сотрудники: заявки, автосборка недели, настройки' : 'Расписание менеджеров: составить, опубликовать, отпуска' },
   { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
   { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Чек-листы для ролей: пункты, время, фото, инструкции' },
   { id: 'users', icon: '👥', label: 'Пользователи', hint: 'Менеджеры, роли и доступ к точкам' },
@@ -36,6 +37,9 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
   { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня: менеджеры выбирают их в чек-листе смены' },
 ]
+
+// Таймтрекер скрыт: раздел «Сотрудники» (список из ТТ) не показываем
+const SECTIONS = ALL_SECTIONS.filter((s) => SHOW_TIMETRACKER || s.id !== 'staff')
 
 export default function AdminLayout({ onExit }: { onExit: () => void }) {
   const { user, logout } = useAuth()

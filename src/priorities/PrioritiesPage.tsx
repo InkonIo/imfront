@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { errorText } from '../admin/ui'
 import { useAuth } from '../auth'
 import { ins } from '../insights/api'
 import type { Row } from '../insights/api'
 import { priorityApi } from './api'
 import type { PriorityIn, PriorityRow } from './api'
-import '../inventory/inventory.css'
+import './priorities.css'
 
 const CATS = ['Продажи', 'Сервис', 'Команда', 'Другое']
+const CAT_CLASS: Record<string, string> = { Продажи: 'c-sales', Сервис: 'c-service', Команда: 'c-team', Другое: 'c-other' }
+const catClass = (c: string | null) => CAT_CLASS[c ?? ''] ?? 'c-other'
 
 interface Draft {
   title: string
@@ -33,6 +35,7 @@ export default function PrioritiesPage() {
   const [outlets, setOutlets] = useState<Row[]>([])
   const [error, setError] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
+  const [filter, setFilter] = useState<string>('')
   const empty = (): Draft => ({ title: '', category: 'Продажи', outletId: isAdmin ? '' : String(outlets[0]?.id ?? ''), active: true, sortOrder: '0' })
   const [draft, setDraft] = useState<Draft>(empty)
 
@@ -51,10 +54,13 @@ export default function PrioritiesPage() {
 
   useEffect(() => {
     load()
-    ins.outlets().then((o) => {
-      setOutlets(o)
-      setDraft((d) => (d.outletId || isAdmin ? d : { ...d, outletId: String(o[0]?.id ?? '') }))
-    }).catch(() => {})
+    ins
+      .outlets()
+      .then((o) => {
+        setOutlets(o)
+        setDraft((d) => (d.outletId || isAdmin ? d : { ...d, outletId: String(o[0]?.id ?? '') }))
+      })
+      .catch(() => {})
   }, [load, isAdmin])
 
   async function run(fn: () => Promise<unknown>) {
@@ -80,106 +86,172 @@ export default function PrioritiesPage() {
     })
   }
 
+  const counts = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const r of rows ?? []) m[r.category ?? 'Другое'] = (m[r.category ?? 'Другое'] ?? 0) + 1
+    return m
+  }, [rows])
+
+  const shown = (rows ?? []).filter((r) => !filter || (r.category ?? 'Другое') === filter)
+
   const form = (onSave: () => void, onCancel?: () => void, label = 'Сохранить') => (
-    <div className="toolbar">
-      <input
-        className="ins-input"
-        style={{ minWidth: 280 }}
-        placeholder="Название приоритета, например «Повысить средний чек»"
-        maxLength={200}
-        value={draft.title}
-        onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-      />
-      <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}>
-        {CATS.map((c) => (
-          <option key={c} value={c}>{c}</option>
-        ))}
-      </select>
-      <select value={draft.outletId} onChange={(e) => setDraft({ ...draft, outletId: e.target.value })}>
-        {isAdmin && <option value="">Все точки</option>}
-        {outlets.map((o) => (
-          <option key={o.id} value={o.id}>{o.name}</option>
-        ))}
-      </select>
-      <label className="inv-date">
-        порядок <input type="number" style={{ width: 70 }} value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} />
+    <div className="pr-form">
+      <label className="pr-field wide">
+        <span>Название</span>
+        <input
+          placeholder="Например «Повысить средний чек»"
+          maxLength={200}
+          value={draft.title}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+        />
       </label>
-      <label className="ext-check">
-        <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} /> активен
+
+      <div className="pr-field wide">
+        <span>Категория</span>
+        <div className="pr-cats">
+          {CATS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={draft.category === c ? `pr-cat on ${catClass(c)}` : `pr-cat ${catClass(c)}`}
+              onClick={() => setDraft({ ...draft, category: c })}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="pr-field">
+        <span>Точка</span>
+        <select value={draft.outletId} onChange={(e) => setDraft({ ...draft, outletId: e.target.value })}>
+          {isAdmin && <option value="">Все точки</option>}
+          {outlets.map((o) => (
+            <option key={String(o.id)} value={String(o.id)}>
+              {String(o.name)}
+            </option>
+          ))}
+        </select>
       </label>
-      <button className="btn small" disabled={!draft.title.trim()} onClick={onSave}>{label}</button>
-      {onCancel && <button className="btn ghost small" onClick={onCancel}>Отмена</button>}
+
+      <label className="pr-field narrow">
+        <span>Порядок</span>
+        <input type="number" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: e.target.value })} />
+      </label>
+
+      <div className="pr-field narrow">
+        <span>Активен</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={draft.active}
+          className={draft.active ? 'pr-switch on' : 'pr-switch'}
+          onClick={() => setDraft({ ...draft, active: !draft.active })}
+        >
+          <i />
+        </button>
+      </div>
+
+      <div className="pr-actions">
+        <button type="button" className="pr-btn primary" disabled={!draft.title.trim()} onClick={onSave}>
+          {label}
+        </button>
+        {onCancel && (
+          <button type="button" className="pr-btn" onClick={onCancel}>
+            Отмена
+          </button>
+        )}
+      </div>
     </div>
   )
 
   return (
-    <div className="page">
-      <p className="muted small">
-        Эти приоритеты менеджеры выбирают в бланке «Чек-лист смены»: перетаскивают в слоты «Приоритет 1, 2, 3».
-        {isAdmin ? ' Для «Все точки» шаблон виден во всех ресторанах.' : ' Ты управляешь шаблонами своих точек; общие шаблоны правит супер-админ.'}
-      </p>
-
-      {editId === null && form(() => void run(async () => { await priorityApi.create(toIn(draft)); setDraft(empty()) }), undefined, 'Добавить')}
-      {error && <div className="error">{error}</div>}
-
-      <div className="panel table-panel">
-        {rows === null ? (
-          <div className="table-state muted">Загрузка…</div>
-        ) : rows.length === 0 ? (
-          <div className="table-state muted">Шаблонов пока нет</div>
-        ) : (
-          <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Приоритет</th>
-                  <th>Категория</th>
-                  <th>Точка</th>
-                  <th>Порядок</th>
-                  <th>Активен</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) =>
-                  editId === r.id ? (
-                    <tr key={r.id}>
-                      <td colSpan={6}>
-                        {form(() => void run(async () => { await priorityApi.update(r.id, toIn(draft)); setEditId(null); setDraft(empty()) }), () => { setEditId(null); setDraft(empty()) })}
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={r.id} style={r.active ? undefined : { opacity: 0.5 }}>
-                      <td className="strong">{r.title}</td>
-                      <td>{r.category ?? '—'}</td>
-                      <td>{r.global ? 'Все точки' : r.outletName}</td>
-                      <td>{r.sortOrder}</td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={r.active}
-                          disabled={!canEdit(r)}
-                          onChange={() => void run(() => priorityApi.update(r.id, { title: r.title, category: r.category, outletId: r.outletId, active: !r.active, sortOrder: r.sortOrder }))}
-                        />
-                      </td>
-                      <td>
-                        {canEdit(r) ? (
-                          <>
-                            <button className="btn ghost small" onClick={() => startEdit(r)}>Изменить</button>{' '}
-                            <button className="btn ghost small" onClick={() => { if (confirm(`Удалить «${r.title}»?`)) void run(() => priorityApi.remove(r.id)) }}>Удалить</button>
-                          </>
-                        ) : (
-                          <span className="muted small">общий</span>
-                        )}
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+    <div className="pr">
+      <div className="pr-hint">
+        <span className="pr-hint-ico">🎯</span>
+        <p>
+          Эти приоритеты менеджеры выбирают в бланке «Чек-лист смены»: перетаскивают в слоты «Приоритет 1, 2, 3».
+          {isAdmin ? ' Для «Все точки» шаблон виден во всех ресторанах.' : ' Ты управляешь шаблонами своих точек; общие шаблоны правит супер-админ.'}
+        </p>
       </div>
+
+      {editId === null && (
+        <section className="pr-card">
+          <h3>Новый приоритет</h3>
+          {form(() => void run(async () => { await priorityApi.create(toIn(draft)); setDraft(empty()) }), undefined, '＋ Добавить')}
+        </section>
+      )}
+
+      {error && <div className="pr-error">{error}</div>}
+
+      <div className="pr-filter">
+        <button type="button" className={filter === '' ? 'on' : ''} onClick={() => setFilter('')}>
+          Все <em>{rows?.length ?? 0}</em>
+        </button>
+        {CATS.map((c) => (
+          <button key={c} type="button" className={filter === c ? 'on' : ''} onClick={() => setFilter(c)}>
+            {c} <em>{counts[c] ?? 0}</em>
+          </button>
+        ))}
+      </div>
+
+      {rows === null ? (
+        <div className="pr-empty">Загрузка…</div>
+      ) : shown.length === 0 ? (
+        <div className="pr-empty">Шаблонов пока нет</div>
+      ) : (
+        <div className="pr-list">
+          {shown.map((r) =>
+            editId === r.id ? (
+              <section key={r.id} className="pr-card editing">
+                <h3>Редактирование</h3>
+                {form(
+                  () => void run(async () => { await priorityApi.update(r.id, toIn(draft)); setEditId(null); setDraft(empty()) }),
+                  () => { setEditId(null); setDraft(empty()) },
+                )}
+              </section>
+            ) : (
+              <article key={r.id} className={r.active ? 'pr-row' : 'pr-row off'}>
+                <span className="pr-order" title="Порядок">{r.sortOrder}</span>
+                <div className="pr-main">
+                  <b>{r.title}</b>
+                  <div className="pr-chips">
+                    <span className={`pr-chip ${catClass(r.category)}`}>{r.category ?? 'Без категории'}</span>
+                    <span className="pr-chip plain">📍 {r.global ? 'Все точки' : r.outletName}</span>
+                    {!canEdit(r) && <span className="pr-chip plain">общий</span>}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={r.active}
+                  aria-label="Активен"
+                  title={r.active ? 'Активен' : 'Отключён'}
+                  disabled={!canEdit(r)}
+                  className={r.active ? 'pr-switch on' : 'pr-switch'}
+                  onClick={() => void run(() => priorityApi.update(r.id, { title: r.title, category: r.category, outletId: r.outletId, active: !r.active, sortOrder: r.sortOrder }))}
+                >
+                  <i />
+                </button>
+                {canEdit(r) && (
+                  <div className="pr-tools">
+                    <button type="button" className="pr-icon" onClick={() => startEdit(r)} title="Изменить" aria-label="Изменить">✎</button>
+                    <button
+                      type="button"
+                      className="pr-icon danger"
+                      title="Удалить"
+                      aria-label="Удалить"
+                      onClick={() => { if (confirm(`Удалить «${r.title}»?`)) void run(() => priorityApi.remove(r.id)) }}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                )}
+              </article>
+            ),
+          )}
+        </div>
+      )}
     </div>
   )
 }
