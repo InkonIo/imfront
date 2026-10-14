@@ -16,6 +16,8 @@ import { useCaps } from '../sched/useCaps'
 import './inside.css'
 import NoteBoard from '../board/NoteBoard'
 import { SHOW_TIMETRACKER } from '../sched/flags'
+import RegulationsWeek from './RegulationsWeek'
+import ShiftExtras from './ShiftExtras'
 
 type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf' | 'sched'
 
@@ -214,12 +216,22 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
           <>
             {current.id === 'route' && <RoutePage {...pageProps} />}
             {current.id === 'sheet' && <ShiftSheetPage />}
-            {current.id === 'daily' && <DailyPage {...pageProps} />}
+            {current.id === 'daily' && (
+              <>
+                <DailyPage {...pageProps} />
+                <RegulationsWeek dayPart={shift.dayPart} />
+              </>
+            )}
             {current.id === 'problems' && <ProblemsPage {...pageProps} />}
             {current.id === 'inventory' && <InventoryPage />}
             {current.id === 'myschedule' && <MySchedulePage />}
             {current.id === 'rating' && <RatingPage />}
-            {current.id === 'summary' && <SummaryPage {...pageProps} />}
+            {current.id === 'summary' && (
+              <>
+                <SummaryPage {...pageProps} />
+                <ShiftExtras outletId={shift.outletId} dayPart={shift.dayPart} startedAt={shift.startedAt} />
+              </>
+            )}
             {current.id === 'shelf' && <ShelfPage />}
             {current.id === 'sched' && <ScheduleHub onChanged={() => void refreshCaps()} />}
           </>

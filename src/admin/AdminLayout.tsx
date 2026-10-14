@@ -18,8 +18,9 @@ import ExtEmployeesPage from '../ext/ExtEmployeesPage'
 import ScheduleHub from '../sched/ScheduleHub'
 import SheetArchive from '../sheet/SheetArchive'
 import PrioritiesPage from '../priorities/PrioritiesPage'
+import WorkflowPage from '../workflow/WorkflowPage'
 
-type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'schedule' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'sheets' | 'priorities'
+type SectionId = 'review' | 'insights' | 'shelf' | 'staff' | 'schedule' | 'audit' | 'users' | 'outlets' | 'cities' | 'templates' | 'rating' | 'inventory' | 'sheets' | 'priorities' | 'workflow'
 
 const ALL_SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
@@ -36,6 +37,7 @@ const ALL_SECTIONS: { id: SectionId; icon: string; label: string; hint: string }
   { id: 'inventory', icon: '📦', label: 'Инвентаризации', hint: 'Сданные и текущие инвентаризации, выгрузка в Excel' },
   { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
   { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня: менеджеры выбирают их в чек-листе смены' },
+  { id: 'workflow', icon: '🧩', label: 'Workflow директора', hint: 'Ежедневные, еженедельные, ежемесячные, квартальные и годовые задачи директора с отметками' },
 ]
 
 // Таймтрекер скрыт: раздел «Сотрудники» (список из ТТ) не показываем
@@ -112,6 +114,7 @@ export default function AdminLayout({ onExit }: { onExit: () => void }) {
         {current.id === 'shelf' && <ShelfPage />}
         {current.id === 'staff' && <ExtEmployeesPage />}
         {current.id === 'schedule' && <ScheduleHub />}
+        {current.id === 'workflow' && <WorkflowPage />}
         {current.id === 'audit' && <AuditHub />}
         {current.id === 'templates' && <TemplatesPage />}
         {current.id === 'rating' && <RatingPage />}

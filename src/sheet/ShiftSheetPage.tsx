@@ -123,6 +123,11 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
     const m = PART_KEY.exec(k)
     return !m || myParts.includes(m[1] ?? m[2])
   }
+  // показываем только свою часть дня: утренний менеджер видит колонку «Утро», вечерний — «Вечер»
+  // (без своей смены на этой точке — обе колонки, только для чтения)
+  const showM = myParts === '' || myParts.includes('m')
+  const showE = myParts === '' || myParts.includes('e')
+  const nCols = 1 + (showM ? 1 : 0) + (showE ? 1 : 0)
   const date = sheet.date.split('-').reverse().join('.')
 
   function set(key: string, value: string) {
@@ -287,7 +292,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
     <textarea className="sh-area" rows={rows} value={v(k)} disabled={!canKey(k)} onChange={(e) => set(k, e.target.value)} />
   )
 
-  const check = (k: string) => (
+  const check = (k: string) => (k.endsWith('.m') && !showM) || (k.endsWith('.e') && !showE) ? null : (
     <td className="sh-cb">
       <input type="checkbox" checked={v(k) === '1'} disabled={!canKey(k)} onChange={() => set(k, v(k) === '1' ? '' : '1')} />
     </td>
@@ -303,7 +308,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
 
   const bar = (key: string, text?: string, strong = false) => (
     <tr key={key}>
-      <td colSpan={3} className={strong ? 'sh-bar strong' : 'sh-bar'}>
+      <td colSpan={nCols} className={strong ? 'sh-bar strong' : 'sh-bar'}>
         {text}
       </td>
     </tr>
@@ -444,8 +449,8 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
           <table className="sh-grid sh-list">
             <thead>
               <tr>
-                <th className="sh-cb">Утро</th>
-                <th className="sh-cb">Вечер</th>
+                {showM && <th className="sh-cb">Утро</th>}
+                {showE && <th className="sh-cb">Вечер</th>}
                 <th />
               </tr>
             </thead>
@@ -461,16 +466,16 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
             <thead>
               <tr>
                 <th>СРОКИ ХРАНЕНИЯ</th>
-                <th>Утро</th>
-                <th>Вечер</th>
+                {showM && <th>Утро</th>}
+                {showE && <th>Вечер</th>}
               </tr>
             </thead>
             <tbody>
               {EXPIRY.map((name, i) => (
                 <tr key={name}>
                   <td className="sh-txt">{name}</td>
-                  <td>{field(`exp.${i}.m`)}</td>
-                  <td>{field(`exp.${i}.e`)}</td>
+                  {showM && <td>{field(`exp.${i}.m`)}</td>}
+                  {showE && <td>{field(`exp.${i}.e`)}</td>}
                 </tr>
               ))}
             </tbody>
@@ -571,7 +576,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
               {DURING_TOP.map(checkRow)}
               {bar('danger', 'НАБЛЮДЕНИЕ ЗА ОПАСНЫМИ ЗОНАМИ И ПРАВИЛЬНАЯ РЕАКЦИЯ НА НИХ:', true)}
               <tr>
-                <td colSpan={3} className="sh-note">
+                <td colSpan={nCols} className="sh-note">
                   <ul>
                     {DANGER_ZONES.map((z) => (
                       <li key={z}>{z}</li>

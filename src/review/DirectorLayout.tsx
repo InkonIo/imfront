@@ -10,6 +10,7 @@ import InsightsPage from '../insights/InsightsPage'
 import ShelfPage from '../shelf/ShelfPage'
 import SheetArchive from '../sheet/SheetArchive'
 import PrioritiesPage from '../priorities/PrioritiesPage'
+import WorkflowPage from '../workflow/WorkflowPage'
 import ScheduleHub from '../sched/ScheduleHub'
 import NoteBoard from '../board/NoteBoard'
 import '../admin/admin.css'
@@ -18,7 +19,7 @@ import './review.css'
 import RatingPage from '../rating/RatingPage'
 
 
-type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf' | 'sheets' | 'priorities' | 'schedule'
+type SectionId = 'review' | 'audit' | 'templates' | 'rating' | 'insights' | 'shelf' | 'sheets' | 'priorities' | 'schedule' | 'workflow'
 
 const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] = [
   { id: 'review', icon: '🔎', label: 'Ждут проверки', hint: 'Подтверди выполнение и разбери флаги' },
@@ -30,6 +31,7 @@ const SECTIONS: { id: SectionId; icon: string; label: string; hint: string }[] =
   { id: 'sheets', icon: '📋', label: 'Архив чек-листов', hint: 'Бланк «Чек-лист смены» за любую дату: кто работал, что отмечено' },
   { id: 'schedule', icon: '🗓', label: 'График менеджеров', hint: 'Составь и опубликуй расписание менеджеров своих точек' },
   { id: 'priorities', icon: '🎯', label: 'Приоритеты', hint: 'Шаблоны приоритетов дня для своих точек' },
+  { id: 'workflow', icon: '🧩', label: 'Workflow директора', hint: 'Ежедневные, еженедельные, ежемесячные, квартальные и годовые задачи директора с отметками' },
 ]
 
 export default function DirectorLayout() {
@@ -130,6 +132,7 @@ export default function DirectorLayout() {
         {current.id === 'sheets' && <SheetArchive />}
         {current.id === 'priorities' && <PrioritiesPage />}
         {current.id === 'schedule' && <ScheduleHub />}
+        {current.id === 'workflow' && <WorkflowPage />}
       <NoteBoard />
       </main>
     </div>
