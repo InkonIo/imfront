@@ -13,10 +13,11 @@ import ScheduleImport from './ScheduleImport'
 // import { useCaps } from './useCaps'
 import './sched.css'
 import './plan.css'
+import ManagerSchedulePage from '../manager-schedule/ManagerSchedulePage'
 
 // type Top = 'overview' | 'analytics' | 'managers' | 'staff'
 // type Sub = 'requests' | 'week' | 'people' | 'settings'
-type Top = 'overview' | 'managers'
+type Top = 'overview' | 'managers' | 'mgrsched'
 
 const BRANCH_KEY = 'sched.branch'
 const readBranch = () => { try { const v = localStorage.getItem(BRANCH_KEY); return v ? Number(v) : null } catch { return null } }
@@ -80,11 +81,11 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
 
   const tabs: { id: Top; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Общий график' },
-    // { id: 'analytics', label: 'Аналитика' },
-    { id: 'managers', label: 'Менеджеры' },
-    // { id: 'staff', label: 'Сотрудники', badge: caps?.pending },
+    { id: 'managers', label: 'Менеджеры (ТТ)' },
+    { id: 'mgrsched', label: 'График менеджеров' },
   ]
   const current: Top = top && tabs.some((t) => t.id === top) ? top : tabs[0].id
+  
 
   // const subs: [Sub, string][] = [['requests', 'Заявки'], ['week', 'График недели'], ['people', 'Люди и обучение'], ['settings', 'Настройки']]
   // const needsBranch = current === 'overview' || current === 'analytics' || (current === 'staff' && sub !== 'requests')
@@ -125,6 +126,7 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
           <SchedulePage key={syncKey} />
         </>
       )}
+      {current === 'mgrsched' && <ManagerSchedulePage />}
 
       {/* Вкладка «Сотрудники» (заявки, график недели, люди и обучение, настройки) скрыта:
       {current === 'staff' && (
