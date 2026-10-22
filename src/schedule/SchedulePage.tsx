@@ -19,7 +19,7 @@ import {
 } from './types'
 import type { AbsenceKind, Board, Col, JobTitle, MiddleShift, Slot, SlotRef, Staff } from './types'
 import { exportSchedule } from './xlsx'
-import ShiftTimePicker from '../manager-schedule/Shifttimepicker'
+import ShiftTimePicker from '../manager-schedule/ShiftTimePicker';
 import './schedule.css'
 import './sched-pro.css'
 

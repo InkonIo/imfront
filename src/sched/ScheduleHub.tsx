@@ -46,28 +46,29 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
   // const [sub, setSub] = useState<Sub>('requests')
   const [branches, setBranches] = useState<ExtBranch[]>([])
   const [branch, setBranch] = useState<number | null>(readBranch())
-  const [syncing, setSyncing] = useState(false)
-  const [syncMsg, setSyncMsg] = useState('')
+  // Скрыто (кнопка синхронизации убрана, закомментировано, чтобы не потерять):
+  // const [syncing, setSyncing] = useState(false)
+  // const [syncMsg, setSyncMsg] = useState('')
   const [syncKey, setSyncKey] = useState(0)
   const [importing, setImporting] = useState(false)
 
-  /** Подтянуть график из  а (этот и следующий месяц) и перерисовать составление графика. */
-  async function syncTt() {
-    setSyncing(true)
-    setSyncMsg('')
-    try {
-      const now = new Date()
-      const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      await extApi.syncSchedule(ym(now))
-      await extApi.syncSchedule(ym(new Date(now.getFullYear(), now.getMonth() + 1, 1)))
-      setSyncKey((k) => k + 1)
-      setSyncMsg('График обновлён ✓')
-    } catch (e) {
-      setSyncMsg(e instanceof Error ? e.message : 'Не удалось обновить')
-    } finally {
-      setSyncing(false)
-    }
-  }
+  // Подтянуть график из  а (этот и следующий месяц) и перерисовать составление графика.
+  // async function syncTt() {
+  //   setSyncing(true)
+  //   setSyncMsg('')
+  //   try {
+  //     const now = new Date()
+  //     const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  //     await extApi.syncSchedule(ym(now))
+  //     await extApi.syncSchedule(ym(new Date(now.getFullYear(), now.getMonth() + 1, 1)))
+  //     setSyncKey((k) => k + 1)
+  //     setSyncMsg('График обновлён ✓')
+  //   } catch (e) {
+  //     setSyncMsg(e instanceof Error ? e.message : 'Не удалось обновить')
+  //   } finally {
+  //     setSyncing(false)
+  //   }
+  // }
 
   useEffect(() => {
     extApi.list('', null, false).then((r) => {
@@ -111,7 +112,7 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
         <>
           <div className="sch-bar" style={{ alignItems: 'center' }}>
             <button className="ext-btn primary" disabled={branch == null} title={branch == null ? 'Сначала выберите ресторан справа вверху' : ''} onClick={() => setImporting(true)}>📥 Загрузить из Excel</button>
-            {syncMsg && <span className="muted-s">{syncMsg}</span>}
+            {/* {syncMsg && <span className="muted-s">{syncMsg}</span>} */}
           </div>
           {importing && branch != null && (
             <ScheduleImport branchId={branch} onClose={() => setImporting(false)} onDone={() => setSyncKey((k) => k + 1)} />
