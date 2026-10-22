@@ -8,6 +8,10 @@ export const templateApi = {
   update: (id: number, body: { title: string; active: boolean }) =>
     request<TemplateFull>(`/api/templates/${id}`, send('PUT', body)),
   remove: (id: number) => request<void>(`/api/templates/${id}`, send('DELETE')),
+  /** Суперадмин: что сотрётся вместе с маршрутом (таблица → число строк). */
+  forcePreview: (id: number) => request<Record<string, number>>(`/api/templates/${id}/force-preview`),
+  /** Суперадмин: удалить маршрут вместе со всеми сменами по нему. */
+  forceRemove: (id: number) => request<Record<string, number>>(`/api/templates/${id}/force`, send('DELETE')),
 
   addSection: (id: number, title: string) =>
     request<TemplateFull>(`/api/templates/${id}/sections`, send('POST', { title })),

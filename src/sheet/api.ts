@@ -38,6 +38,32 @@ export interface SheetAuto {
   hours?: { hour: number; guests: number; sales: number }[]
   planHours?: { hour: number; gc: number; sales: number }[]
   pcts?: Record<string, string>
+  planSource?: 'forecast' | 'history'
+  lastDay?: string | null
+  staff?: { gcph: number | null; hours: number | null; count: number | null }
+  sand?: {
+    prev: number | null
+    goal: number | null
+    source?: 'formula' | 'ratio'
+    hours: { hour: number; qty: number }[]
+    planHours: { hour: number; qty: number }[]
+  }
+}
+
+export interface ForecastResult {
+  restaurant: string | null
+  from: string
+  to: string
+  days: number
+  hourRows: number
+  staffDays: number
+}
+
+export interface SandwichResult {
+  restaurant: string | null
+  day: string
+  hours: number
+  total: number
 }
 
 export interface SheetImportResult {
@@ -61,6 +87,10 @@ export const sheetApi = {
   auto: (id: number) => request<SheetAuto>(`/api/sheets/${id}/auto`),
   importSales: (id: number, fileName: string, data: string) =>
     request<SheetImportResult>(`/api/sheets/${id}/sales-import`, send('POST', { fileName, data })),
+  importForecast: (id: number, fileName: string, data: string) =>
+    request<ForecastResult>(`/api/sheets/${id}/forecast-import`, send('POST', { fileName, data })),
+  importSandwich: (id: number, fileName: string, data: string) =>
+    request<SandwichResult>(`/api/sheets/${id}/sandwich-import`, send('POST', { fileName, data })),
   priorities: (outletId: number) => request<PriorityTpl[]>(`/api/sheet-priorities?outletId=${outletId}`),
   save: (id: number, values: Record<string, string | null>) =>
     request<{ updatedAt: string }>(`/api/sheets/${id}/values`, send('PUT', { values })),

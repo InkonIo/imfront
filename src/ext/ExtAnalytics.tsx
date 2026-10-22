@@ -187,7 +187,7 @@ export default function ExtAnalytics({ branchId }: { branchId: number | null }) 
       </div>
 
       {error && <div className="ext-msg err">{error}</div>}
-      {empty && <div className="ext-msg err">За этот месяц график не загружен. Открой вкладку «График» и нажми «Загрузить из Таймтрекера».</div>}
+      {empty && <div className="ext-msg err">За этот месяц график не загружен. Открой вкладку «График» и нажми «Загрузить из  а».</div>}
 
       {s && !empty && (
         <>

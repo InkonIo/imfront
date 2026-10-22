@@ -9,9 +9,9 @@ export interface DayTarget {
   day: string          // YYYY-MM-DD
   dayTitle: string     // «14 октября, вт»
   now: string          // что стоит сейчас: «16–0», «выходной», «—»
-  tt: string | null    // что в Таймтрекере, если отличается
+  tt: string | null    // что в  е, если отличается
   edited: boolean
-  warn: string | null  // например «В Таймтрекере тут отпуск»
+  warn: string | null  // например «В  е тут отпуск»
 }
 
 const PRESETS = [
@@ -39,7 +39,7 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [log, setLog] = useState<DayLogRow[]>([])
-  const [pv, setPv] = useState<PushResult | null>(null)   // предпросмотр отправки в Таймтрекер
+  const [pv, setPv] = useState<PushResult | null>(null)   // предпросмотр отправки в  
   const [sent, setSent] = useState<PushResult | null>(null)
 
   async function preview() {
@@ -48,7 +48,7 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
     try {
       setPv(await dayApi.push(t.employeeId, t.day, false))
     } catch (x) {
-      setErr(x instanceof Error ? x.message : 'Не удалось получить данные из Таймтрекера')
+      setErr(x instanceof Error ? x.message : 'Не удалось получить данные')
     } finally {
       setBusy(false)
     }
@@ -110,7 +110,7 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
 
         <div className="de-now">
           Сейчас: <b>{t.now}</b>
-          {t.edited && t.tt != null && <em> · в Таймтрекере: {t.tt}</em>}
+          {t.edited && t.tt != null && <em> · в  е: {t.tt}</em>}
         </div>
         {t.warn && <div className="de-warn">{t.warn}</div>}
 
@@ -143,12 +143,12 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
         {t.edited && !sent && (
           <div className="de-tt">
             {!pv && (
-              <button className="de-ttbtn" disabled={busy} onClick={() => void preview()}>⇪ Отправить в Таймтрекер…</button>
+              <button className="de-ttbtn" disabled={busy} onClick={() => void preview()}>⇪ Отправить в  …</button>
             )}
             {pv && !pv.ok && <div className="de-warn">{pv.reason}</div>}
             {pv && pv.ok && (
               <>
-                <div className="de-ttline">В Таймтрекере сейчас: <b>{pv.from}</b> → станет: <b>{pv.to}</b></div>
+                <div className="de-ttline">В  е сейчас: <b>{pv.from}</b> → станет: <b>{pv.to}</b></div>
                 <small>Меняется один день в карточке сотрудника, остальное не трогаем. После записи сверим результат.</small>
                 <div className="de-ttrow">
                   <button className="go" disabled={busy} onClick={() => void send()}>Да, отправить</button>
@@ -160,7 +160,7 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
         )}
         {sent && (
           <div className="de-tt ok">
-            <div className="de-ttline">{sent.verified ? '✓ Отправлено в Таймтрекер и сверено' : 'Отправлено, но сверка не сошлась: ' + (sent.message ?? '')}</div>
+            <div className="de-ttline">{sent.verified ? '✓ Отправлено в   и сверено' : 'Отправлено, но сверка не сошлась: ' + (sent.message ?? '')}</div>
             {sent.warning && <div className="de-warn">{sent.warning}</div>}
             <div className="de-ttrow"><button className="go" onClick={onSaved}>Готово</button></div>
           </div>
@@ -168,9 +168,9 @@ export default function DayEditor({ t, onClose, onSaved }: { t: DayTarget; onClo
 
         <div className="de-foot">
           {t.edited
-            ? <button className="reset" disabled={busy} onClick={() => void save('RESET')}>↺ Вернуть как в Таймтрекере</button>
+            ? <button className="reset" disabled={busy} onClick={() => void save('RESET')}>↺ Вернуть как в  е</button>
             : <span />}
-          <small>Правка сохраняется на сайте. В Таймтрекер уходит только по кнопке выше.</small>
+          <small>Правка сохраняется на сайте. В   уходит только по кнопке выше.</small>
         </div>
 
         {log.length > 0 && (

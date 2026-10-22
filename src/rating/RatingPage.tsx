@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { api } from '../api'
 import { errorText } from '../admin/ui'
 import { useAuth } from '../auth'
@@ -18,9 +19,18 @@ const PERIODS: { id: Period; label: string }[] = [
 
 const ROLES: ShiftRole[] = ['INSIDE', 'PRODUCTION_MANAGER', 'SERVICE_MANAGER']
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
-const REVEAL_DELAY: Record<number, number> = { 3: 0, 2: 450, 1: 900 } // как в Kahoot: 3 → 2 → 1
-const AVATAR_COLORS = ['#e21b3c', '#1368ce', '#d89e00', '#26890c', '#864cbf', '#0aa3a3', '#ff7a00']
-const CONFETTI_COLORS = ['#f2a007', '#e21b3c', '#1368ce', '#26890c', '#ffffff', '#ff7ad9', '#7dd3fc']
+const REVEAL_DELAY: Record<number, number> = { 3: 0, 2: 550, 1: 1150 } // 3 → 2 → 1, победитель с паузой
+const WIN_AT = 1150 + 700 // когда выезжает победитель: от этого момента запускаем салют
+const AVATAR_COLORS = [
+  ['#ff5f6d', '#ffc371'],
+  ['#36d1dc', '#5b86e5'],
+  ['#f7971e', '#ffd200'],
+  ['#56ab2f', '#a8e063'],
+  ['#8e2de2', '#da6bff'],
+  ['#00c6ff', '#0072ff'],
+  ['#ff512f', '#dd2476'],
+]
+const CONFETTI_COLORS = ['#ffd24a', '#ff5f6d', '#5b8cff', '#3ddc97', '#ffffff', '#ff7ad9', '#7dd3fc']
 
 function isoLocal(d: Date) {
   return d.toLocaleDateString('en-CA')
@@ -50,8 +60,9 @@ function initials(name: string) {
     .join('')
 }
 
-function avatarColor(id: number) {
-  return AVATAR_COLORS[id % AVATAR_COLORS.length]
+function avatarBg(id: number) {
+  const [a, b] = AVATAR_COLORS[id % AVATAR_COLORS.length]
+  return `linear-gradient(135deg, ${a}, ${b})`
 }
 
 function plural(n: number, one: string, few: string, many: string) {
@@ -135,6 +146,7 @@ export default function RatingPage() {
   const top = entries.slice(0, 3)
   const rest = entries.slice(3)
   const me = entries.find((e) => e.userId === user?.id)
+  const leader = Math.max(1, entries[0]?.score ?? 1)
 
   return (
     <div className="page rating-page">
@@ -165,12 +177,24 @@ export default function RatingPage() {
             </option>
           ))}
         </select>
+        <button className="replay" type="button" onClick={() => setShowId((k) => k + 1)} title="Проиграть заново">
+          ▶ Ещё раз
+        </button>
       </div>
 
       {error && <div className="error">{error}</div>}
 
       <div className="stage" key={showId}>
-        <div className="stage-title">🏆 {SHIFT_ROLE_LABEL[role]} · {PERIODS.find((p) => p.id === period)?.label}</div>
+        <div className="stage-fx" aria-hidden="true">
+          <i className="orb o1" />
+          <i className="orb o2" />
+          <i className="orb o3" />
+          <i className="stars" />
+        </div>
+        <div className="stage-title">
+          <span className="stage-kicker">Рейтинг</span>
+          {SHIFT_ROLE_LABEL[role]} · {PERIODS.find((p) => p.id === period)?.label}
+        </div>
         {board === null && !error ? (
           <div className="stage-empty">Загрузка…</div>
         ) : entries.length === 0 ? (
@@ -199,7 +223,7 @@ export default function RatingPage() {
       {rest.length > 0 && (
         <ol className="board-list">
           {rest.map((e, i) => (
-            <BoardRow key={`${showId}-${e.userId}`} e={e} me={e.userId === user?.id} index={i} />
+            <BoardRow key={`${showId}-${e.userId}`} e={e} me={e.userId === user?.id} index={i} ratio={e.score / leader} />
           ))}
         </ol>
       )}
@@ -248,13 +272,17 @@ function Podium({ top, meId }: { top: RatingEntry[]; meId?: number }) {
 
 function PodiumSlot({ entry, place, me }: { entry: RatingEntry; place: number; me: boolean }) {
   const delay = REVEAL_DELAY[place]
-  const score = useCountUp(entry.score, 1100, delay + 350)
+  const score = useCountUp(entry.score, 1300, delay + 400)
   return (
     <div className={`podium-slot p${place} ${me ? 'me' : ''}`}>
+      {place === 1 && <i className="spot" style={{ animationDelay: `${delay}ms` }} />}
       <div className="podium-person" style={{ animationDelay: `${delay + 250}ms` }}>
-        {place === 1 && <div className="crown">👑</div>}
-        <div className="avatar" style={{ background: avatarColor(entry.userId) }}>
-          {initials(entry.name)}
+        {place === 1 && <div className="crown" style={{ animationDelay: `${delay + 450}ms, ${delay + 1300}ms` }}>👑</div>}
+        <div className="avatar-wrap">
+          {place === 1 && <i className="halo" style={{ animationDelay: `${delay + 500}ms` }} />}
+          <div className="avatar" style={{ backgroundImage: avatarBg(entry.userId) }}>
+            {initials(entry.name)}
+          </div>
         </div>
         <div className="podium-name">
           {entry.name}
@@ -280,14 +308,15 @@ function Confetti() {
   // без Math.random: позиции детерминированы, но выглядят случайно
   const pieces = useMemo(
     () =>
-      Array.from({ length: 70 }, (_, i) => ({
+      Array.from({ length: 90 }, (_, i) => ({
         left: (i * 37 + 7) % 100,
-        delay: 1.3 + (i % 12) * 0.07,
-        duration: 2.2 + (i % 7) * 0.3,
+        delay: (WIN_AT + (i % 15) * 70 + (i > 55 ? 900 : 0)) / 1000,
+        duration: 2.4 + (i % 7) * 0.32,
         color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
         rotate: (i * 47) % 360,
         size: 6 + (i % 4) * 2,
-        drift: ((i % 9) - 4) * 12,
+        drift: ((i % 9) - 4) * 14,
+        round: i % 5 === 0,
       })),
     [],
   )
@@ -296,17 +325,18 @@ function Confetti() {
       {pieces.map((p, i) => (
         <i
           key={i}
+          className={p.round ? 'round' : undefined}
           style={
             {
               left: `${p.left}%`,
               width: p.size,
-              height: p.size * 1.6,
+              height: p.round ? p.size : p.size * 1.6,
               background: p.color,
               animationDelay: `${p.delay}s`,
               animationDuration: `${p.duration}s`,
               '--rot': `${p.rotate}deg`,
               '--drift': `${p.drift}px`,
-            } as React.CSSProperties
+            } as CSSProperties
           }
         />
       ))}
@@ -316,11 +346,11 @@ function Confetti() {
 
 // ================= остальные места =================
 
-function BoardRow({ e, me, index }: { e: RatingEntry; me: boolean; index: number }) {
+function BoardRow({ e, me, index, ratio }: { e: RatingEntry; me: boolean; index: number; ratio: number }) {
   return (
-    <li className={me ? 'board-row me' : 'board-row'} style={{ animationDelay: `${1.6 + index * 0.06}s` }}>
+    <li className={me ? 'board-row me' : 'board-row'} style={{ animationDelay: `${(WIN_AT + 300) / 1000 + index * 0.07}s`, '--w': ratio, '--bar-delay': `${(WIN_AT + 500) / 1000 + index * 0.07}s` } as CSSProperties}>
       <span className="board-rank">{e.rank}</span>
-      <span className="avatar small" style={{ background: avatarColor(e.userId) }}>
+      <span className="avatar small" style={{ backgroundImage: avatarBg(e.userId) }}>
         {initials(e.name)}
       </span>
       <div className="board-main">
@@ -342,6 +372,7 @@ function BoardRow({ e, me, index }: { e: RatingEntry; me: boolean; index: number
         {e.score}
         <small>⌀ {e.avgScore}</small>
       </div>
+      <i className="board-bar" aria-hidden="true" />
     </li>
   )
 }

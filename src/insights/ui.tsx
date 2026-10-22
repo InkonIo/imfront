@@ -22,13 +22,29 @@ export function Card(p: { title?: ReactNode; sub?: ReactNode; right?: ReactNode;
   )
 }
 
-export function Kpi(p: { label: string; value: ReactNode; hint?: ReactNode; delta?: number | null; deltaGoodUp?: boolean; tone?: string }) {
+export interface KpiChip { text: string; dir: 'up' | 'down' | 'flat'; good: boolean }
+
+export function Kpi(p: {
+  label: string; value: ReactNode; hint?: ReactNode; delta?: number | null; deltaGoodUp?: boolean; tone?: string
+  icon?: string; info?: string; chip?: KpiChip | null
+}) {
   const good = p.deltaGoodUp !== false
   const d = p.delta
   return (
     <div className={`ins-kpi ${p.tone ? 'is-' + p.tone : ''}`}>
-      <div className="ins-kpi-l">{p.label}</div>
-      <div className="ins-kpi-v">{p.value}</div>
+      <div className="ins-kpi-l">
+        {p.icon && <span className="ins-kpi-ico" aria-hidden>{p.icon}</span>}
+        <span>{p.label}</span>
+        {p.info && <span className="ins-info" title={p.info} aria-label={p.info}>i</span>}
+      </div>
+      <div className="ins-kpi-v">
+        {p.value}
+        {p.chip && (
+          <span className={`ins-chipd ${p.chip.dir === 'flat' ? 'flat' : p.chip.good ? 'good' : 'bad'}`}>
+            {p.chip.dir === 'up' ? '↗' : p.chip.dir === 'down' ? '↘' : '→'} {p.chip.text}
+          </span>
+        )}
+      </div>
       <div className="ins-kpi-f">
         {d != null && Math.abs(d) >= 0.05 && (
           <span className={`ins-delta ${(d > 0) === good ? 'up' : 'down'}`}>

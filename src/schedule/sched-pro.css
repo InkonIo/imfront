@@ -1,0 +1,44 @@
+/* ===== Автосборка: панель настройки ===== */
+.sch .sch-controls{padding:18px;border-radius:16px;gap:14px}
+.sch .sch-plan{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.sch .sch-plan-part{padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card-2);gap:8px}
+.sch .sch-plan-part>b{width:100%;font-size:14px}
+.sch .sch-plan .check{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);cursor:pointer;font-weight:600;font-size:13px}
+.sch .sch-plan .check:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.sch .sch-middle{padding:10px 14px;border:1px dashed var(--line);border-radius:14px}
+.sch .sch-mid-add{padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card-2);align-items:flex-start}
+.sch .sch-mid-add .tp{flex:1 1 320px}
+.sch .sch-warnings{border:1px solid rgba(220,53,69,.25);border-radius:14px}
+.sch .sch-grid{border-collapse:separate;border-spacing:0}
+.sch .sch-grid th,.sch .sch-grid td{border:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.sch .sch-chip{box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.sch .sch-chip.conflict{background:rgba(220,53,69,.12);border-color:#e11d2e;color:#b4232f}
+
+/* ===== Люди и лимиты ===== */
+.sp .sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.sp .sp-card{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+.sp .sp-card.dim{opacity:.75}
+.sp .sp-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sp .sp-ava{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink,var(--text));font-weight:800}
+.sp .sp-who{flex:1;min-width:120px}
+.sp .sp-name{font-weight:800;font-size:16px}
+.sp .sp-login{font-size:12px;color:var(--muted)}
+.sp .sp-job{width:auto;height:36px;margin:0;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card-2);font:inherit;font-size:13px;font-weight:600;color:inherit}
+.sp .sp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:var(--card-2)}
+.sp .sp-row b{display:block;font-size:14px}
+.sp .sp-row span{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.sp .sp-sw{position:relative;flex:none;width:46px;height:26px;margin:0;padding:0;border:0;border-radius:999px;background:var(--line);cursor:pointer;transition:background .15s}
+.sp .sp-sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.sp .sp-sw.on{background:var(--accent)}
+.sp .sp-sw.on i{transform:translateX(20px)}
+.sp .sp-sw:disabled{opacity:.4;cursor:not-allowed}
+.sp .sp-max{padding:10px 12px;border-radius:12px;background:var(--card-2)}
+.sp .sp-max-t{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.sp .sp-max-t b{font-size:14px}.sp .sp-max-t em{font-style:normal;font-weight:800;color:var(--accent)}
+.sp .sp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.sp .sp-days button{height:38px;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--muted);font:inherit;font-size:15px;font-weight:800;cursor:pointer;width:auto}
+.sp .sp-days button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
+.sp .sp-days button.on.last{background:var(--accent);color:#1b1400}
+.sp .sp-lim{display:flex;flex-direction:column;gap:8px;font-size:13px}
+.sp .sp-free{color:var(--muted)}
+.sp .sch-limit-list{flex-direction:row}

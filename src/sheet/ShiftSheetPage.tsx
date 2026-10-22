@@ -82,6 +82,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
   useEffect(() => {
     if (!sheet || !auto || filled.current) return
     filled.current = true
+    if (sheet.values['meta.noauto'] === '1') return // бланк сброшен вручную: сам не заполняем
     applyRef.current(false)
   }, [sheet, auto])
 
@@ -177,6 +178,7 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
 
   function applyAuto(overwrite: boolean, data: SheetAuto | null = auto) {
     if (!data) return
+    if (overwrite && v('meta.noauto')) set('meta.noauto', '')
     const rows: [string, 'sales' | 'gc' | 'avgCheck'][] = [
       ['sales', 'sales'],
       ['gc', 'gc'],
@@ -226,6 +228,32 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
         })
       })
     }
+
+    // сэндвичи: итог за вчера, цель и почасовка из отчёта «Ежечасный сэндвич»
+    const sd = data.sand
+    if (sd) {
+      const g = GOALS.find((x) => x.id === 'sandwiches')
+      if (g) {
+        const pk = `goal.${g.id}.prev`
+        const gk = `goal.${g.id}.goal`
+        if (sd.prev != null && (overwrite || !v(pk))) set(pk, nf(sd.prev))
+        if (sd.goal != null && (overwrite || !v(gk))) set(gk, nf(sd.goal))
+      }
+      const sandCol = HOURLY.find((c) => c.pair && /сандвич/i.test(c.label))
+      if (sandCol) {
+        ;(['m', 'e'] as Part[]).forEach((part) => {
+          HOURS[part].forEach((label, i) => {
+            const hour = parseInt(label, 10)
+            const plan = sd.planHours.find((x) => x.hour === hour)
+            const fact = sd.hours.find((x) => x.hour === hour)
+            const pk = `hr.${part}.${i}.${sandCol.id}.p`
+            const fk = `hr.${part}.${i}.${sandCol.id}.f`
+            if (plan && (overwrite || !v(pk))) set(pk, nf(plan.qty))
+            if (fact && (overwrite || !v(fk))) set(fk, nf(fact.qty))
+          })
+        })
+      }
+    }
   }
   applyRef.current = applyAuto
 
@@ -251,6 +279,48 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
     }
   }
 
+  // очищает цифры, которые подставлены из отчётов (цели, результаты, доли каналов, почасовые таблицы); чек-лист и текстовые поля не трогает
+  function resetAuto() {
+    if (!window.confirm('Очистить цифры из отчётов (цели, результаты, почасовые таблицы)? Галочки и текстовые поля останутся.')) return
+    const re = /^(goal\.(sales|gc|avcheck|sandwiches|kiosk|mobile|postomat|dlv|gcpch)\.(prev|goal)|pct\..+|hr\.[me]\.\d+\.[^.]+\.(p|f|v))$/
+    for (const k of Object.keys(values)) {
+      if (re.test(k) && values[k] !== '') set(k, '')
+    }
+    set('meta.noauto', '1')
+    setNote('Цифры очищены. Загрузите отчёты или нажмите «Подставить заново».')
+  }
+
+  async function uploadPlan(kind: 'forecast' | 'sandwich', files: FileList | null) {
+    if (!files || files.length === 0 || !sheet) return
+    setUploading(true)
+    setNote('')
+    setError('')
+    try {
+      const ru = (x: string) => x.split('-').reverse().slice(0, 2).join('.')
+      const notes: string[] = []
+      for (const f of Array.from(files)) {
+        const buf = new Uint8Array(await f.arrayBuffer())
+        let bin = ''
+        for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+        if (kind === 'forecast') {
+          const r = await sheetApi.importForecast(sheet.id, f.name, btoa(bin))
+          notes.push(`Прогноз загружен: ${ru(r.from)} – ${ru(r.to)}, дней ${r.days}.`)
+        } else {
+          const r = await sheetApi.importSandwich(sheet.id, f.name, btoa(bin))
+          notes.push(`Сэндвичи за ${ru(r.day)}: ${r.total} шт.`)
+        }
+      }
+      const fresh = await sheetApi.auto(sheet.id)
+      setAuto(fresh)
+      applyAuto(true, fresh)
+      setNote(`${notes.join(' ')} Цифры подставлены, их можно поправить.`)
+    } catch (e) {
+      setError(errorText(e))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // ---------- приоритеты дня: шаблоны перетаскиваются в слоты 1–3 ----------
   const dropTo = (n: number, text: string) => set(`prio.${n}`, text)
   const pickTpl = (text: string) => {
@@ -267,8 +337,19 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
     const d = (s: string) => s.split('-').reverse().slice(0, 2).join('.')
     return (
       <div className="muted small sh-noprint">
-        {auto.prev ? `Результат за ${d(auto.prevDate)} из отчёта iiko. ` : `За ${d(auto.prevDate)} нет данных: загрузи Excel в «Расписание → Аналитика». `}
-        {auto.goal && auto.basis ? `Цели: среднее за ${auto.basis.map(d).join(', ')} + ${auto.pct}%. ` : 'Для целей не хватает прошлых недель в отчёте. '}
+        {auto.prev
+          ? `Результат за ${d(auto.prevDate)} (такой же день прошлой недели) из отчёта iiko. `
+          : `За ${d(auto.prevDate)} (такой же день прошлой недели) в отчёте iiko нет данных${auto.lastDay ? ` (в базе есть до ${d(auto.lastDay)})` : ''}: загрузи свежий отчёт «Почасовая выручка». `}
+        {auto.planSource === 'forecast'
+          ? 'Цели и план по часам из загруженного прогноза. '
+          : auto.goal && auto.basis
+            ? `Цели: среднее за ${auto.basis.map(d).join(', ')} + ${auto.pct}%. `
+            : 'Для целей не хватает прошлых недель в отчёте. Можно загрузить прогноз. '}
+        {auto.sand?.goal == null
+          ? 'Сэндвичи: загрузи отчёт «Ежечасный сэндвич». '
+          : auto.sand.source === 'formula'
+            ? `Сэндвичи: план GC × сэндвичи факт ÷ GC факт за ${d(auto.prevDate)}. `
+            : 'Сэндвичи: за прошлую неделю данных нет, взята доля сэндвичей за последние дни. '}
         <button className="btn small" onClick={() => applyAuto(true)}>
           Подставить заново
         </button>
@@ -420,9 +501,47 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
             />
           </label>
         )}
+        {editable && (
+          <>
+            <label className="btn small sh-upload">
+              📅 Загрузить прогноз (Excel)
+              <input
+                type="file"
+                accept=".xlsx"
+                hidden
+                disabled={uploading}
+                onChange={(e) => {
+                  void uploadPlan('forecast', e.target.files)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            <label className="btn small sh-upload">
+              🥪 Загрузить сэндвичи (Excel)
+              <input
+                type="file"
+                accept=".xlsx"
+                multiple
+                hidden
+                disabled={uploading}
+                onChange={(e) => {
+                  void uploadPlan('sandwich', e.target.files)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </>
+        )}
+        <div className="sh-toolbar-right">
         <button className="btn small" onClick={() => window.print()}>
           🖨 Печать
         </button>
+          {editable && (
+            <button className="btn small sh-reset" disabled={uploading} onClick={resetAuto}>
+              🧹 Очистить
+            </button>
+          )}
+        </div>
       </div>
       {autoNote()}
       {note && <div className="muted small sh-noprint">{note}</div>}
@@ -517,6 +636,17 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
           <div className="sh-section">ЦЕЛИ НА ДЕНЬ</div>
           <div className="sh-prio-wrap">
             <div>
+              {editable && [1, 2, 3].some((n) => v(`prio.${n}`)) && (
+                <div className="sh-prio-tools sh-noprint">
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => [1, 2, 3].forEach((n) => set(`prio.${n}`, ''))}
+                  >
+                    🧹 Очистить все три
+                  </button>
+                </div>
+              )}
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
@@ -535,7 +665,14 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
                     dropTo(n, text)
                   }}
                 >
-                  <div className="sh-section light">Приоритет {n}</div>
+                  <div className="sh-section light sh-prio-head">
+                    <span>Приоритет {n}</span>
+                    {editable && v(`prio.${n}`) && (
+                      <button type="button" className="sh-x sh-noprint" onClick={() => set(`prio.${n}`, '')}>
+                        ✕ очистить
+                      </button>
+                    )}
+                  </div>
                   {area(`prio.${n}`, 2)}
                 </div>
               ))}
@@ -544,9 +681,11 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
               <aside className="sh-prio-pal sh-noprint">
                 <h4>Шаблоны приоритетов</h4>
                 <div className="muted small">Перетащи в слот слева или нажми, текст можно поправить.</div>
-                {cats.map((c) => (
-                  <div key={c}>
-                    <div className="cat">{c}</div>
+                {cats.map((c, ci) => (
+                  <details key={c} open={ci === 0}>
+                    <summary className="cat">
+                      {c} <span className="muted">· {tpls.filter((x) => (x.category ?? 'Другое') === c).length}</span>
+                    </summary>
                     {tpls
                       .filter((x) => (x.category ?? 'Другое') === c)
                       .map((x) => (
@@ -557,11 +696,12 @@ export default function ShiftSheetPage({ sheetId, readOnly = false }: { sheetId?
                           draggable
                           onDragStart={(e) => e.dataTransfer.setData('application/x-prio', x.title)}
                           onClick={() => pickTpl(x.title)}
+                          title={x.title}
                         >
                           {x.title}
                         </button>
                       ))}
-                  </div>
+                  </details>
                 ))}
               </aside>
             )}

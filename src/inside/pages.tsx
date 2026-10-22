@@ -132,12 +132,24 @@ export function RoutePage({ shift, checklist, onChange }: PageProps) {
 
 // ---------------- Регламент дня ----------------
 
-export function DailyPage({ shift, checklist, onChange }: PageProps) {
+export function DailyPage({ shift, checklist, onChange, bare = false }: PageProps & { bare?: boolean }) {
   const now = useNow()
   const weekday = new Date(`${shift.shiftDate}T00:00:00`).toLocaleDateString('ru-RU', { weekday: 'long' })
 
-  if (!checklist) return <NoChecklist />
+  if (!checklist) return bare ? null : <NoChecklist />
   const items = checklist.items.filter((i) => i.sectionTitle === DAILY_SECTION)
+
+  // bare: только карточки заданий, без рамки и заглушки (для компактного экрана «Регламент дня»)
+  if (bare) {
+    if (items.length === 0) return null
+    return (
+      <div className="section-items">
+        {items.map((i) => (
+          <ItemCard key={i.id} item={i} shiftDate={shift.shiftDate} now={now} onChange={onChange} />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="page">

@@ -36,7 +36,7 @@ export default function OverviewTab({ branchId, canEdit = false }: { branchId: n
   }, [branchId, from, tick])
   useEffect(() => { setData(null); setDayF(null) }, [branchId, from])
 
-  /** Подтянуть график из Таймтрекера прямо сейчас (месяцы, в которые попала неделя). */
+  /** Подтянуть график из  а прямо сейчас (месяцы, в которые попала неделя). */
   async function syncNow() {
     setSyncing(true); setError(''); setNote('')
     try {
@@ -44,7 +44,7 @@ export default function OverviewTab({ branchId, canEdit = false }: { branchId: n
       await extApi.syncSchedule(a)
       if (b !== a) await extApi.syncSchedule(b)
       setTick((x) => x + 1)
-      setNote('График из Таймтрекера обновлён')
+      setNote('График из  а обновлён')
     } catch (e) { setError(errText(e)) } finally { setSyncing(false) }
   }
 
@@ -68,7 +68,7 @@ export default function OverviewTab({ branchId, canEdit = false }: { branchId: n
     const tt = c.ttStart != null ? `${c.ttStart}–${clk(c.ttEnd)}` : c.ttNote != null ? 'выходной/отсутствие' : null
     return {
       employeeId: r.id, name: r.name, day, dayTitle: dayLabel(day), now, tt, edited: false,
-      warn: c.kind === 'ABSENCE' ? `В Таймтрекере тут: ${absLabel(c.note)}` : null,
+      warn: c.kind === 'ABSENCE' ? `В  е тут: ${absLabel(c.note)}` : null,
     }
   }
 
@@ -91,7 +91,7 @@ export default function OverviewTab({ branchId, canEdit = false }: { branchId: n
         {dayF != null && data && <button className="ext-btn sm" onClick={() => setDayF(null)}>Только {dayLabel(data.days[dayF])} ✕</button>}
       </div>
       {data && data.ttSyncedMin != null && data.ttSyncedMin > 120 && (
-        <div className="ext-msg err">Данные Таймтрекера обновлялись {data.ttSyncedAt} — это давно, замены могут не отображаться. <button className="ext-btn sm" disabled={syncing} onClick={() => void syncNow()}>Обновить сейчас</button></div>
+        <div className="ext-msg err">Данные  а обновлялись {data.ttSyncedAt} — это давно, замены могут не отображаться. <button className="ext-btn sm" disabled={syncing} onClick={() => void syncNow()}>Обновить сейчас</button></div>
       )}
       {note && <div className="ext-msg ok">{note}</div>}
       {error && <div className="ext-msg err">{error}</div>}
@@ -139,8 +139,8 @@ export default function OverviewTab({ branchId, canEdit = false }: { branchId: n
         </div>
       )}
       <p className="muted-s" style={{ marginTop: 8 }}>
-        Главный источник — Таймтрекер: кто и когда работает. Позиция берётся из нашего графика (пунктир — черновик, ещё не опубликован). Для будущих дней, которых ещё нет в Таймтрекере, показан наш график{data?.ttSyncedAt ? `, обновлено ${data.ttSyncedAt}` : ''}.
-        Метка «≠ТТ» — в Таймтрекере у человека другое время или выходной; «план …» — в плане было иначе; «замена» — человек вышел вместо другого; «не вышел» — в Таймтрекере нет пробития спустя 3 часа после начала смены. В строке «На смене» такие не считаются.
+        Главный источник —  : кто и когда работает. Позиция берётся из нашего графика (пунктир — черновик, ещё не опубликован). Для будущих дней, которых ещё нет в  е, показан наш график{data?.ttSyncedAt ? `, обновлено ${data.ttSyncedAt}` : ''}.
+        Метка «≠ТТ» — в  е у человека другое время или выходной; «план …» — в плане было иначе; «замена» — человек вышел вместо другого; «не вышел» — в  е нет пробития спустя 3 часа после начала смены. В строке «На смене» такие не считаются.
       </p>
       {canEdit && <p className="muted-s">Нажмите на клетку, чтобы исправить время смены или поставить выходной. Правка сохраняется у нас и не затирается обновлением из ТТ.</p>}
       {edit && <DayEditor t={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); setTick((x) => x + 1) }} />}
@@ -170,12 +170,12 @@ function Cell({ c }: { c: OverviewCell | null }) {
     )
   }
   const mismatch = c.ttStart != null || c.ttNote != null
-  const ttTitle = c.ttStart != null ? `В Таймтрекере: ${c.ttStart}–${clk(c.ttEnd)}` : 'В Таймтрекере выходной/отсутствие'
+  const ttTitle = c.ttStart != null ? `В  е: ${c.ttStart}–${clk(c.ttEnd)}` : 'В  е выходной/отсутствие'
   return (
-    <div className={`ov-shift src-${c.src}${c.noShow ? ' noshow' : ''}`} title={c.src === 'DRAFT' ? 'Черновик, ещё не опубликован' : c.src === 'TT' ? 'Из Таймтрекера' : 'Опубликованный график'}>
+    <div className={`ov-shift src-${c.src}${c.noShow ? ' noshow' : ''}`} title={c.src === 'DRAFT' ? 'Черновик, ещё не опубликован' : c.src === 'TT' ? 'Из  а' : 'Опубликованный график'}>
       <b>{c.start}–{clk(c.end)}</b>
-      {c.noShow && <small className="ov-ns" title="В Таймтрекере нет пробития спустя несколько часов после начала смены">не вышел</small>}
-      {c.factIn && <small className="ov-in" title="Пробитие в Таймтрекере">пришёл {c.factIn}</small>}
+      {c.noShow && <small className="ov-ns" title="В  е нет пробития спустя несколько часов после начала смены">не вышел</small>}
+      {c.factIn && <small className="ov-in" title="Пробитие в  е">пришёл {c.factIn}</small>}
       {c.pos && <span className={`pl-pos ${posClass(c.pos)}`}>{c.pos}</span>}
       {c.parts && c.parts.length > 1 && <small className="ov-parts">{c.parts.map((p) => `${p.pos} ${p.start}–${clk(p.end)}`).join(' · ')}</small>}
       {c.replaces && <small className="ov-rep" title="Вышел вместо этого человека">замена: {shortName(c.replaces)}</small>}

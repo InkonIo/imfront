@@ -1,0 +1,18 @@
+.tp{display:flex;flex-direction:column;gap:10px}
+.tp-row{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+.tp-lab{font-size:13px;color:var(--muted,#6b7280)}
+.tp .tp-box{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line,#d9dce6);border-radius:14px;background:var(--card,#fff);overflow:hidden;width:auto;height:44px}
+.tp .tp-box.bad{border-color:#e11d2e;box-shadow:0 0 0 2px rgba(225,29,46,.15)}
+.tp .tp-in{width:84px;height:42px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;text-align:center;font:inherit;font-size:18px;font-weight:700;letter-spacing:.02em;color:inherit;outline:none}
+.tp .tp-step{width:40px;height:42px;margin:0;padding:0;border:0;border-radius:0;background:var(--card-2,#f1f2f6);color:inherit;font-size:20px;line-height:1;cursor:pointer}
+.tp .tp-step:hover{background:var(--accent-soft,#fdecee)}
+.tp-dur{font-size:13px;color:var(--muted,#6b7280);padding:3px 10px;border-radius:999px;background:var(--card-2,#f1f2f6)}
+.tp-quick{display:flex;gap:6px;flex-wrap:wrap}
+.tp .tp-quick button{height:36px;margin:0;padding:0 12px;border:1px solid var(--line,#d9dce6);border-radius:999px;background:var(--card,#fff);color:inherit;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tp .tp-quick button:hover{background:var(--card-2,#f1f2f6)}
+.tp .tp-quick button.on{background:var(--accent,#e8a234);border-color:var(--accent,#e8a234);color:#1b1400}
+.tp-hint{font-size:12px;color:var(--muted,#6b7280)}
+.tp-grp{display:inline-flex;align-items:center;gap:8px}
+/* рамка поля «Задачи на день» всегда видна */
+.ms-picker textarea.ms-comment-input{border:1.5px solid var(--line,#c9cddb);border-radius:12px;padding:10px 12px;background:var(--card,#fff);color:inherit;box-shadow:none;outline:none}
+.ms-picker textarea.ms-comment-input:focus{border-color:var(--accent,#e8a234);box-shadow:0 0 0 3px var(--accent-soft,rgba(232,162,52,.2))}

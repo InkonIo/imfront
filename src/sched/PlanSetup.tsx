@@ -149,7 +149,7 @@ export function PeoplePanel({ branchId }: { branchId: number }) {
   )
 }
 
-/** Выбор человека в kln для сотрудника, у которого телефон в Таймтрекере и kln не совпал. */
+/** Выбор человека в kln для сотрудника, у которого телефон в  е и kln не совпал. */
 function LinkModal({ emp, onClose, onDone }: { emp: PlanEmp; onClose: () => void; onDone: () => void | Promise<void> }) {
   const [q, setQ] = useState(emp.name.split(' ')[0])
   const [list, setList] = useState<KlnUser[]>([])
@@ -238,7 +238,7 @@ export function TrainingPanel({ branchId }: { branchId: number }) {
 
   return (
     <>
-      <p className="muted-s">На эти дни инструктор встаёт на TR. Стажёра можно вписать текстом: он может ещё не быть в kln и Таймтрекере. Если имя совпало с сотрудником из списка, стажёр встанет на TRN в те же часы.</p>
+      <p className="muted-s">На эти дни инструктор встаёт на TR. Стажёра можно вписать текстом: он может ещё не быть в kln и  е. Если имя совпало с сотрудником из списка, стажёр встанет на TRN в те же часы.</p>
       {error && <div className="ext-msg err">{error}</div>}
       <div className="pl-form pl-card">
         <label>Инструктор<select className="ext-input" value={instr} onChange={(e) => setInstr(e.target.value ? Number(e.target.value) : '')}>
@@ -308,21 +308,21 @@ export function KlnPanel() {
 
   return (
     <>
-      <p className="muted-s">Из kln берём, на каких позициях может работать каждый человек. Сотрудников сопоставляем с Таймтрекером по телефону. Синхронизация занимает до минуты.</p>
+      <p className="muted-s">Из kln берём, на каких позициях может работать каждый человек. Сотрудников сопоставляем с  ом по телефону. Синхронизация занимает до минуты.</p>
       {error && <div className="ext-msg err">{error}</div>}
       <div className="pl-bar">
         <button className="ext-btn primary" disabled={busy} onClick={() => void sync()}>{busy ? 'Синхронизирую…' : 'Синхронизировать с kln'}</button>
       </div>
       {report && (
         <div className="ext-msg ok">
-          Рестораны: {report.branches ?? '—'}, сотрудники kln: {report.users ?? '—'}, связано с Таймтрекером: {report.matched}, позиций проставлено: {report.positions}.
+          Рестораны: {report.branches ?? '—'}, сотрудники kln: {report.users ?? '—'}, связано с  ом: {report.matched}, позиций проставлено: {report.positions}.
           {report.unknownPositions.length > 0 && <div>Новые коды позиций в kln, которых у нас нет: {report.unknownPositions.join(', ')}</div>}
-          {report.unmatchedInMappedBranches.length > 0 && <div>Не нашлись в Таймтрекере по телефону: {report.unmatchedInMappedBranches.join(', ')}</div>}
+          {report.unmatchedInMappedBranches.length > 0 && <div>Не нашлись в  е по телефону: {report.unmatchedInMappedBranches.join(', ')}</div>}
         </div>
       )}
       <div className="ext-wrap" style={{ marginTop: 10 }}>
         <table className="ext-table">
-          <thead><tr><th>Ресторан в kln</th><th>Сотрудников</th><th>Филиал в Таймтрекере</th></tr></thead>
+          <thead><tr><th>Ресторан в kln</th><th>Сотрудников</th><th>Филиал в  е</th></tr></thead>
           <tbody>
             {branches.map((b) => (
               <tr key={b.id}>

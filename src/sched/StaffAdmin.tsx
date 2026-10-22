@@ -89,7 +89,7 @@ export function RequestsTab({ branchId, onChanged }: { branchId: number | null; 
           </div>
         ))}
       </div>
-      <p className="rq-foot">Одобренная заявка отмечается точкой на графике. Сам график в Таймтрекере она пока не меняет.</p>
+      <p className="rq-foot">Одобренная заявка отмечается точкой на графике. Сам график в  е она пока не меняет.</p>
     </>
   )
 }
@@ -145,7 +145,7 @@ export function AccessTab({ branchId, isAdmin }: { branchId: number | null; isAd
         </button>
       </div>
       {error && <div className="ext-msg err">{error}</div>}
-      <p className="rq-foot" style={{ marginTop: 0 }}>Логин сотрудника — его номер телефона из Таймтрекера (7XXXXXXXXXX). Пароль генерируется и показывается один раз; при первом входе сотрудник обязан его сменить.</p>
+      <p className="rq-foot" style={{ marginTop: 0 }}>Логин сотрудника — его номер телефона из  а (7XXXXXXXXXX). Пароль генерируется и показывается один раз; при первом входе сотрудник обязан его сменить.</p>
       <div className="ext-wrap">
         <table className="ext-table">
           <thead><tr><th style={{ width: 36 }} /><th>Сотрудник</th><th>Филиал</th><th>Телефон</th><th>Аккаунт</th><th /></tr></thead>
@@ -169,7 +169,7 @@ export function AccessTab({ branchId, isAdmin }: { branchId: number | null; isAd
                 </td>
               </tr>
             ))}
-            {rows && rows.length === 0 && <tr><td colSpan={6} className="ext-empty">Никого нет. Сначала синхронизируйте сотрудников из Таймтрекера.</td></tr>}
+            {rows && rows.length === 0 && <tr><td colSpan={6} className="ext-empty">Никого нет. Сначала синхронизируйте сотрудников из  а.</td></tr>}
           </tbody>
         </table>
       </div>

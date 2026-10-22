@@ -2,13 +2,41 @@ import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, Pie, P
 import { ins } from './api'
 import { useIns } from './ctx'
 import { Avatar, Card, Heatmap, Kpi, PctBar, Pill, ScoreParts, State, Table, axis, tip } from './ui'
-import { DAY_PART, FLAG, REVIEW, ROLE, SERIES, fmt, num, pct, shortDate, tone, useAsync, dt } from './utils'
+import { DAY_PART, FLAG, REVIEW, ROLE, SERIES, fmt, num, pct, shortDate, tone, useAsync, dt, ymd } from './utils'
+import type { KpiChip } from './ui'
+
+/** Предыдущий период такой же длины, сразу перед выбранным. */
+function prevRange(from: string, to: string): { from: string; to: string } {
+  const a = new Date(`${from}T12:00:00`)
+  const z = new Date(`${to}T12:00:00`)
+  const days = Math.round((z.getTime() - a.getTime()) / 86400000) + 1
+  const pz = new Date(a); pz.setDate(pz.getDate() - 1)
+  const pa = new Date(pz); pa.setDate(pa.getDate() - (days - 1))
+  return { from: ymd(pa), to: ymd(pz) }
+}
+
+/** Изменение к прошлому периоду: для счётчиков — в процентах, для процентных показателей — в п.п. */
+function chip(cur: unknown, prev: unknown, o: { points?: boolean; goodUp?: boolean } = {}): KpiChip | null {
+  if (cur == null || prev == null) return null
+  const c = num(cur), p = num(prev)
+  let diff: number
+  if (o.points) diff = c - p
+  else if (p > 0) diff = ((c - p) / p) * 100
+  else return null
+  const r = Math.round(diff * 10) / 10
+  const dir = r > 0 ? 'up' : r < 0 ? 'down' : 'flat'
+  const good = o.goodUp === false ? r <= 0 : r >= 0
+  return { text: `${Math.abs(r).toLocaleString('ru-RU')}${o.points ? ' п.п.' : '%'}`, dir, good }
+}
 
 const SEV: Record<string, string> = { HIGH: 'bad', MEDIUM: 'warn', LOW: 'mute' }
 
 export default function Overview() {
   const { f, openManager, openShift, openCount } = useIns()
   const s = useAsync(() => ins.overview(f), [f.from, f.to, f.outletId])
+  const pr = prevRange(f.from, f.to)
+  const prev = useAsync(() => ins.overview({ ...f, from: pr.from, to: pr.to }), [pr.from, pr.to, f.outletId])
+  const pt = prev.data?.totals as Record<string, unknown> | undefined
   return (
     <State s={s} empty={d => num(d.totals?.shifts) === 0}>
       {d => {
@@ -26,14 +54,15 @@ export default function Overview() {
         }))
         return (
           <div className="ins-stack">
-            <div className="ins-kpis">
-              <Kpi label="Смен" value={fmt(t.shifts)} hint={`${fmt(t.managers)} менеджеров`} />
-              <Kpi label="Средний балл" value={fmt(t.score_avg, 1)} hint="за смену" />
-              <Kpi label="Выполнено" value={pct(t.completion_pct)} tone={tone(t.completion_pct)} hint={`${fmt(t.items_done)} из ${fmt(t.items_total)}`} />
-              <Kpi label="Вовремя" value={pct(t.on_time_pct)} tone={tone(t.on_time_pct, 80, 60)} />
-              <Kpi label="Флаги подтв." value={fmt(t.flags_confirmed)} tone={num(t.flags_confirmed) ? 'warn' : 'good'} hint={`${fmt(t.flags_open)} ждут проверки`} deltaGoodUp={false} />
-              <Kpi label="Фото" value={fmt(t.photos)} hint={`${fmt(t.comments)} комментариев`} />
-              <Kpi label="В смене" value={t.avg_active_min != null ? `${fmt(t.avg_active_min)} мин` : '—'} hint={`из ${fmt(t.avg_duration_min)} мин`} />
+            <h2 className="ins-h2">Ключевые метрики за выбранный период</h2>
+            <div className="ins-kpis big">
+              <Kpi icon="🗓" label="Смен" value={fmt(t.shifts)} chip={chip(t.shifts, pt?.shifts)} info="Сколько смен отработано за период" hint={pt ? `vs прошлый период · ${fmt(t.managers)} менеджеров` : `${fmt(t.managers)} менеджеров`} />
+              <Kpi icon="⭐" label="Средний балл" value={fmt(t.score_avg, 1)} chip={chip(t.score_avg, pt?.score_avg)} info="Средний балл за смену по правилам рейтинга" hint="vs прошлый период" />
+              <Kpi icon="✅" label="Выполнено" value={pct(t.completion_pct)} tone={tone(t.completion_pct)} chip={chip(t.completion_pct, pt?.completion_pct, { points: true })} info="Доля пунктов чек-листа, которые сделаны" hint={`${fmt(t.items_done)} из ${fmt(t.items_total)}`} />
+              <Kpi icon="⏱" label="Вовремя" value={pct(t.on_time_pct)} tone={tone(t.on_time_pct, 80, 60)} chip={chip(t.on_time_pct, pt?.on_time_pct, { points: true })} info="Доля пунктов, сделанных в своё время" hint="vs прошлый период" />
+              <Kpi icon="🚩" label="Флаги подтв." value={fmt(t.flags_confirmed)} tone={num(t.flags_confirmed) ? 'warn' : 'good'} chip={chip(t.flags_confirmed, pt?.flags_confirmed, { goodUp: false })} info="Нарушения, которые подтвердил директор" hint={`${fmt(t.flags_open)} ждут проверки`} />
+              <Kpi icon="📸" label="Фото" value={fmt(t.photos)} chip={chip(t.photos, pt?.photos)} info="Фото, приложенные к пунктам" hint={`${fmt(t.comments)} комментариев`} />
+              <Kpi icon="🖥" label="В смене" value={t.avg_active_min != null ? `${fmt(t.avg_active_min)} мин` : '—'} chip={chip(t.avg_active_min, pt?.avg_active_min)} info="Сколько минут из смены человек реально работал в системе" hint={`из ${fmt(t.avg_duration_min)} мин`} />
             </div>
 
             <div className="ins-grid g-2-1">

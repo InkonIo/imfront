@@ -27,3 +27,24 @@
 .sh-pct-sum.warn { background: #fdeaea; color: #b3261e; }
 .sh-pct-sum .sh-pct-title { color: inherit; }
 @media print { .sh-pct-sum .small, .sh-pct-head .muted { display: none; } }
+
+/* компактные приоритеты дня */
+.sh-prio-wrap { grid-template-columns: 1fr 300px; }
+.sh-prio-wrap .sh-area { min-height: 0 !important; height: 62px; resize: vertical; font-size: 15px; }
+.sh-prio-head { display: flex; justify-content: space-between; align-items: center; padding-top: 2px; padding-bottom: 2px; }
+.sh-prio-head .sh-x { border: 0; background: transparent; color: #a33; font-size: 12px; cursor: pointer; padding: 2px 6px; }
+.sh-prio-head .sh-x:hover { text-decoration: underline; }
+.sh-prio-tools { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.sh-prio-pal { max-height: 420px; overflow: auto; }
+.sh-prio-pal summary.cat { cursor: pointer; list-style: none; margin: 6px 0 4px; }
+.sh-prio-pal summary.cat::-webkit-details-marker { display: none; }
+.sh-prio-pal summary.cat::before { content: '▸ '; }
+.sh-prio-pal details[open] > summary.cat::before { content: '▾ '; }
+.sh-prio-pal .sh-chip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* верхняя панель: кнопки в одну строку, справа «Печать» и под ней «Очистить» */
+.sh-toolbar { align-items: flex-start; }
+.sh-toolbar .btn { white-space: nowrap; }
+.sh-toolbar-right { display: flex; flex-direction: column; gap: 6px; margin-left: auto; }
+.sh-toolbar-right .btn { width: 100%; justify-content: center; }
+.sh-toolbar .sh-reset { color: #a33; }

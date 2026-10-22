@@ -19,7 +19,9 @@ import {
 } from './types'
 import type { AbsenceKind, Board, Col, JobTitle, MiddleShift, Slot, SlotRef, Staff } from './types'
 import { exportSchedule } from './xlsx'
+import ShiftTimePicker from '../manager-schedule/Shifttimepicker'
 import './schedule.css'
+import './sched-pro.css'
 
 const DOW = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 const PARTS: DayPart[] = ['MORNING', 'EVENING', 'MIDDLE']
@@ -90,12 +92,25 @@ const earlyStart = (s?: { dayPart: DayPart; startTime: string | null }) =>
 
 type Tab = 'grid' | 'staff' | 'absences'
 
-export default function SchedulePage() {
+type Props = {
+  /** Если задано, точку не выбираем внутри: её выбрали снаружи. */
+  outletId?: number
+  /** Понедельник недели, с которой показываем график (иначе сегодня). */
+  weekStart?: string
+  /** Если задано, показываем только эту вкладку и прячем собственную шапку. */
+  view?: Tab
+  /** Что-то сохранили: пусть внешняя страница обновит свои данные. */
+  onChanged?: () => void
+}
+
+export default function SchedulePage({ outletId: fixedOutlet, weekStart, view, onChanged }: Props = {}) {
   const { user } = useAuth()
   const isAdmin = user?.accountRole === 'SUPER_ADMIN'
   const [outlets, setOutlets] = useState<Outlet[]>(isAdmin ? [] : (user?.outlets ?? []))
-  const [outletId, setOutletId] = useState<number | null>(isAdmin ? null : (user?.outlets[0]?.id ?? null))
-  const [tab, setTab] = useState<Tab>('grid')
+  const [ownOutlet, setOutletId] = useState<number | null>(isAdmin ? null : (user?.outlets[0]?.id ?? null))
+  const outletId = fixedOutlet ?? ownOutlet
+  const [ownTab, setTab] = useState<Tab>('grid')
+  const tab = view ?? ownTab
   const [from, setFrom] = useState(() => iso(new Date()))
   const [days, setDays] = useState(7)
   const [board, setBoard] = useState<Board | null>(null)
@@ -112,7 +127,14 @@ export default function SchedulePage() {
   const to = addDays(from, days - 1)
 
   useEffect(() => {
-    if (!isAdmin) return
+    if (weekStart) {
+      setFrom(weekStart)
+      setDays(7)
+    }
+  }, [weekStart])
+
+  useEffect(() => {
+    if (!isAdmin || fixedOutlet != null) return
     let cancelled = false
     api
       .adminOutlets()
@@ -125,7 +147,7 @@ export default function SchedulePage() {
     return () => {
       cancelled = true
     }
-  }, [isAdmin])
+  }, [isAdmin, fixedOutlet])
 
   useEffect(() => {
     if (outletId === null) return
@@ -153,7 +175,10 @@ export default function SchedulePage() {
     }
   }, [outletId, from, to, reloadKey])
 
-  const reload = () => setReloadKey((k) => k + 1)
+  const reload = () => {
+    setReloadKey((k) => k + 1)
+    onChanged?.()
+  }
   const dates = useMemo(() => Array.from({ length: days }, (_, i) => addDays(from, i)), [from, days])
 
   async function run(action: () => Promise<unknown>, ok?: string) {
@@ -244,7 +269,7 @@ export default function SchedulePage() {
 
   return (
     <div className="page sch">
-      <div className="toolbar">
+      {view == null && <div className="toolbar">
         {isAdmin && (
           <select className="select" value={outletId} onChange={(e) => setOutletId(Number(e.target.value))}>
             {outlets.map((o) => (
@@ -267,7 +292,7 @@ export default function SchedulePage() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {error && <div className="error">{error}</div>}
       {notice && <div className="sch-notice">{notice}</div>}
@@ -334,12 +359,7 @@ export default function SchedulePage() {
                   </option>
                 ))}
               </select>
-              <label className="sch-inline">
-                с <input type="time" value={midStart} min="10:00" max="22:00" onChange={(e) => setMidStart(e.target.value)} />
-              </label>
-              <label className="sch-inline">
-                до <input type="time" value={midEnd} min="11:00" max="23:00" onChange={(e) => setMidEnd(e.target.value)} />
-              </label>
+              <ShiftTimePicker start={midStart} end={midEnd} onChange={(st, en) => { setMidStart(st); setMidEnd(en) }} />
               <button className="btn small" type="button" onClick={addMiddle}>
                 ＋ Промеж
               </button>
@@ -630,6 +650,17 @@ function StatsTable({ board }: { board: Board }) {
 
 // ================= сотрудники =================
 
+const initials = (n: string) => n.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
+
+function Switch({ on, disabled, onChange, label }: { on: boolean; disabled?: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled}
+      className={on ? 'sp-sw on' : 'sp-sw'} onClick={() => onChange(!on)}>
+      <i />
+    </button>
+  )
+}
+
 function StaffTab({ board, onSaved }: { board: Board; onSaved: () => void }) {
   const [error, setError] = useState('')
 
@@ -660,99 +691,70 @@ function StaffTab({ board, onSaved }: { board: Board; onSaved: () => void }) {
   }
 
   return (
-    <div className="page">
+    <div className="page sp">
       {error && <div className="error">{error}</div>}
-      <div className="panel table-panel">
-        <div className="table-scroll">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Сотрудник</th>
-                <th>Должность</th>
-                <th>Может инсайдом</th>
-                <th>В автографике</th>
-                <th>Макс. смен в неделю</th>
-                <th>🙅 Не может (заполняет сам)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {board.staff.map((s) => {
-                const limits = board.limits.filter((l) => l.userId === s.userId)
-                return (
-                  <tr key={s.userId}>
-                    <td>
-                      <div className="strong">{s.fullName}</div>
-                      <div className="muted small">@{s.login}</div>
-                    </td>
-                    <td>
-                      <select
-                        className="select"
-                        value={s.jobTitle}
-                        onChange={(e) => void save(s, { jobTitle: e.target.value as JobTitle })}
-                      >
-                        {(Object.keys(JOB_LABEL) as JobTitle[]).map((j) => (
-                          <option key={j} value={j}>
-                            {JOB_LABEL[j]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={s.canInside}
-                          disabled={s.jobTitle === 'TRAINEE'}
-                          onChange={(e) => void save(s, { canInside: e.target.checked })}
-                        />
-                        {s.canInside ? 'да' : 'нет'}
-                      </label>
-                    </td>
-                    <td>
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={s.schedulable}
-                          onChange={(e) => void save(s, { schedulable: e.target.checked })}
-                        />
-                        {s.schedulable ? 'да' : s.jobTitle === 'DIRECTOR' ? 'только вручную' : 'нет'}
-                      </label>
-                    </td>
-                    <td>
-                      <select
-                        className="select"
-                        value={s.maxShiftsWeek}
-                        onChange={(e) => void save(s, { maxShiftsWeek: Number(e.target.value) })}
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      {limits.length === 0 ? (
-                        <span className="muted small">нет, полностью доступен (5/2)</span>
-                      ) : (
-                        <div className="sch-limit-list">
-                          {limits.map((l) => (
-                            <span key={l.id} className="sch-limit-chip" title={l.note ?? ''}>
-                              {limitText(l)}
-                              <button type="button" onClick={() => void removeLimit(l.id)} aria-label="Удалить">
-                                ✕
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      <div className="sp-grid">
+        {board.staff.map((s) => {
+          const limits = board.limits.filter((l) => l.userId === s.userId)
+          return (
+            <div key={s.userId} className={s.schedulable ? 'sp-card' : 'sp-card dim'}>
+              <div className="sp-head">
+                <div className="sp-ava">{initials(s.fullName)}</div>
+                <div className="sp-who">
+                  <div className="sp-name">{s.fullName}</div>
+                  <div className="sp-login">@{s.login}</div>
+                </div>
+                <select className="sp-job" value={s.jobTitle} onChange={(e) => void save(s, { jobTitle: e.target.value as JobTitle })}>
+                  {(Object.keys(JOB_LABEL) as JobTitle[]).map((j) => (
+                    <option key={j} value={j}>{JOB_LABEL[j]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sp-row">
+                <div>
+                  <b>Может стоять на инсайде</b>
+                  {s.jobTitle === 'TRAINEE' && <span>стажёр не ставится на инсайд</span>}
+                </div>
+                <Switch on={s.canInside} disabled={s.jobTitle === 'TRAINEE'} label="Может инсайдом"
+                  onChange={(v) => void save(s, { canInside: v })} />
+              </div>
+              <div className="sp-row">
+                <div>
+                  <b>Участвует в автосборке</b>
+                  <span>{s.schedulable ? 'генератор ставит сам' : s.jobTitle === 'DIRECTOR' ? 'только вручную' : 'только вручную'}</span>
+                </div>
+                <Switch on={s.schedulable} label="В автографике" onChange={(v) => void save(s, { schedulable: v })} />
+              </div>
+
+              <div className="sp-max">
+                <div className="sp-max-t"><b>Сколько дней в неделю может работать</b><em>{s.maxShiftsWeek} из 7</em></div>
+                <div className="sp-days" role="group" aria-label="Макс. смен в неделю">
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <button key={n} type="button" className={n <= s.maxShiftsWeek ? (n === s.maxShiftsWeek ? 'on last' : 'on') : ''}
+                      onClick={() => void save(s, { maxShiftsWeek: n })}>{n}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="sp-lim">
+                <b>🙅 Просил не ставить</b>
+                {limits.length === 0 ? (
+                  <span className="sp-free">полностью доступен</span>
+                ) : (
+                  <div className="sch-limit-list">
+                    {limits.map((l) => (
+                      <span key={l.id} className="sch-limit-chip" title={l.note ?? ''}>
+                        {limitText(l)}
+                        <button type="button" onClick={() => void removeLimit(l.id)} aria-label="Удалить">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
       <p className="muted small">
         Пожелания «не могу» сотрудники заполняют сами в «🗓 Мой график». Генератор их не нарушает, вручную поставить можно, но

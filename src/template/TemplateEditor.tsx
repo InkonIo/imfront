@@ -50,6 +50,8 @@ export default function TemplateEditor({
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState<{ sectionId: number; item: TemplateItem | null } | null>(null)
   const [info, setInfo] = useState<TemplateItem | null>(null)
+  const [forceOpen, setForceOpen] = useState(false)
+  const isAdmin = user?.accountRole === 'SUPER_ADMIN'
 
   useEffect(() => {
     let cancelled = false
@@ -134,6 +136,7 @@ export default function TemplateEditor({
   }
 
   async function removeTemplate() {
+    if (isAdmin) return setForceOpen(true) // суперадмин: окно «удалить вместе со сменами»
     if (!confirm(`Удалить маршрут «${s.title}»? Если по нему уже были смены, удалить не получится, только выключить.`)) return
     setBusy(true)
     try {
@@ -375,6 +378,15 @@ export default function TemplateEditor({
         />
       )}
 
+      {forceOpen && (
+        <ForceDeleteModal
+          id={s.id}
+          title={s.title}
+          onClose={() => setForceOpen(false)}
+          onDone={onBack}
+        />
+      )}
+
       {info && (
         <Modal title={info.title} onClose={() => setInfo(null)}>
           <div className="instructions">{info.instructions}</div>
@@ -414,5 +426,99 @@ function ItemChips({ it, onInfo }: { it: TemplateItem; onInfo: () => void }) {
       )}
       {!it.active && <span className="pill off">выключен</span>}
     </>
+  )
+}
+/** Суперадмин: удалить маршрут вместе со всеми сменами по нему. Показываем, что сотрётся, и просим ввести название. */
+function ForceDeleteModal({
+  id,
+  title,
+  onClose,
+  onDone,
+}: {
+  id: number
+  title: string
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [counts, setCounts] = useState<Record<string, number> | null>(null)
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    templateApi
+      .forcePreview(id)
+      .then((r) => {
+        if (!cancelled) setCounts(r)
+      })
+      .catch((e) => {
+        if (!cancelled) setErr(errorText(e))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const rows = counts ? Object.entries(counts) : []
+  // всё, что не сам маршрут, разделы и пункты: смены, отметки, фото…
+  const others = rows.filter(([t]) => !t.includes('checklist_')).reduce((a, [, n]) => a + n, 0)
+  const needName = others > 0
+  const ok = counts !== null && (!needName || typed.trim() === title.trim())
+
+  async function go() {
+    setBusy(true)
+    setErr('')
+    try {
+      await templateApi.forceRemove(id)
+      onDone()
+    } catch (e) {
+      setErr(errorText(e))
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal title="Удалить маршрут вместе со сменами" onClose={onClose}>
+      <div className="modal-form">
+        <p>
+          Маршрут <b>«{title}»</b> будет удалён навсегда. Вернуть его нельзя.
+        </p>
+        {counts === null && !err && <div className="muted">Считаю, что будет удалено…</div>}
+        {counts !== null && (
+          <div className="error" style={{ background: 'rgba(220,53,69,.08)' }}>
+            {needName ? (
+              <>
+                Вместе с ним сотрутся смены по этому маршруту и всё, что к ним привязано (<b>{others}</b> записей):
+              </>
+            ) : (
+              <>Смен по этому маршруту нет. Сотрутся только сам маршрут, разделы и пункты:</>
+            )}
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {rows.map(([t, n]) => (
+                <li key={t}>
+                  {t}: {n}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {needName && (
+          <label>
+            Чтобы подтвердить, введите название маршрута
+            <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={title} />
+          </label>
+        )}
+        {err && <div className="error">{err}</div>}
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose}>
+            Отмена
+          </button>
+          <button className="btn danger" disabled={!ok || busy} onClick={go}>
+            {busy ? 'Удаляю…' : '🗑️ Удалить навсегда'}
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }

@@ -15,7 +15,7 @@ const MONTHS_GEN = ['января', 'февраля', 'марта', 'апрел�
 type View = 'plan' | 'fact' | 'inout'
 type Kind = 'shift' | 'present' | 'late' | 'off' | 'pv' | 'miss' | 'vac' | 'sick' | 'trip' | 'hol' | 'pre' | 'fired' | 'plan' | 'other' | 'empty'
 
-/** Подписи и коды — как в легенде Таймтрекера, чтобы глаз не переучивался. */
+/** Подписи и коды — как в легенде  а, чтобы глаз не переучивался. */
 const KIND: Record<Kind, { code: string; name: string }> = {
   present: { code: 'П', name: 'Присутствовал' },
   late: { code: 'О', name: 'Опоздал' },
@@ -34,11 +34,11 @@ const KIND: Record<Kind, { code: string; name: string }> = {
   empty: { code: '', name: '' },
 }
 
-/** Значения type: was, wasnt, wasInWeekend, late, weekend, work, beforeWork, celebrate (из данных Таймтрекера); остальное угадываем по смыслу. */
+/** Значения type: was, wasnt, wasInWeekend, late, weekend, work, beforeWork, celebrate (из данных  а); остальное угадываем по смыслу. */
 function classify(c: SchedCell | undefined): Kind {
   if (!c) return 'empty'
   const t = (c.type ?? '').toLowerCase()
-  // точные значения type из Таймтрекера
+  // точные значения type из  а
   if (t === 'was') return 'present'
   if (t === 'wasinweekend') return 'pv'
   if (t === 'wasnt') return 'miss'
@@ -170,7 +170,7 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
     if (c?.edited) tt = !c.ttType && !c.ttStart ? 'нет записи' : c.ttType === 'weekend' || !c.ttStart ? 'выходной' : `${short(c.ttStart)}–${short(c.ttEnd ?? null)}`
     const origKind = classify(c?.edited ? { ...c, type: c.ttType ?? null, planStart: c.ttStart ?? null, planEnd: c.ttEnd ?? null } : c)
     const warns: string[] = []
-    if (['vac', 'sick', 'trip', 'hol', 'pre', 'fired'].includes(origKind)) warns.push(`В Таймтрекере тут: ${KIND[origKind].name.toLowerCase()}`)
+    if (['vac', 'sick', 'trip', 'hol', 'pre', 'fired'].includes(origKind)) warns.push(`В  е тут: ${KIND[origKind].name.toLowerCase()}`)
     if (c && (c.workedMin > 0 || c.factIn)) warns.push('Сотрудник в этот день уже отмечался на работе')
     setEditing({
       employeeId: emp.id, name: emp.fullName,
@@ -252,7 +252,7 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
         </div>
         <input className="ext-input sch-search" type="search" placeholder="Поиск по ФИО" value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="ext-btn primary" onClick={() => void sync()} disabled={busy}>
-          {busy ? 'Загружаем…' : '⟳ Загрузить из Таймтрекера'}
+          {busy ? 'Загружаем…' : '⟳ Загрузить из  а'}
         </button>
       </div>
 
@@ -334,7 +334,7 @@ export default function ExtSchedule({ branchId, withRequests = false }: { branch
               )
             })}
             {data && emps.length === 0 && (
-              <tr><td colSpan={days.length + 1} className="ext-empty">Нет данных. Нажми «Загрузить из Таймтрекера».</td></tr>
+              <tr><td colSpan={days.length + 1} className="ext-empty">Нет данных. Нажми «Загрузить из  а».</td></tr>
             )}
           </tbody>
           {emps.length > 0 && (

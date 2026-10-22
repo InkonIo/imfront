@@ -138,7 +138,7 @@ export default function WeekView({ branchId, onGoSettings }: { branchId: number;
           <span>{draft.status === 'DRAFT' ? 'Черновик' : `Опубликован ${draft.publishedAt ?? ''}`}</span>
           <span>Закрыто: {draft.shifts.length - emptyCount} из {draft.shifts.length}</span>
           {emptyCount > 0 && <span className="pl-bad">Не закрыто: {emptyCount}</span>}
-          {draft.status === 'PUBLISHED' && <span>В Таймтрекер пока не записан</span>}
+          {draft.status === 'PUBLISHED' && <span>В   пока не записан</span>}
         </div>
       )}
 

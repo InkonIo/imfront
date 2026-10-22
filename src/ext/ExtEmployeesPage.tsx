@@ -87,7 +87,7 @@ export default function ExtEmployeesPage() {
           <input type="checkbox" checked={fired} onChange={(e) => setFired(e.target.checked)} /> с уволенными
         </label>
         <button className="ext-btn primary" onClick={() => void sync()} disabled={busy}>
-          {busy ? 'Синхронизируем…' : '⟳ Синхронизировать с Таймтрекером'}
+          {busy ? 'Синхронизируем…' : '⟳ Синхронизировать с  ом'}
         </button>
       </div>
 

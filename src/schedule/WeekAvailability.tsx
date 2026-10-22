@@ -17,7 +17,6 @@ const MODES: { id: Mode; label: string }[] = [
   { id: 'off', label: 'Офф' },
   { id: 'am', label: 'Утро' },
   { id: 'pm', label: 'Вечер' },
-  { id: 'custom', label: 'Своё время' },
 ]
 // смены: утро 10–16, вечер 16–24 (как в чек-листе смены)
 const MORNING: [number, number] = [10, 16]
@@ -80,7 +79,7 @@ const writeStore = (monday: Date, v: { ids: number[]; plan: DayPlan[] }) => {
   }
 }
 
-/** Быстрый ввод недели: на каждый день — «весь день», «офф», «утро», «вечер» или своё время. */
+/** Быстрый ввод недели: на каждый день — «весь день», «офф», «утро» или «вечер». */
 export default function WeekAvailability({ onChange }: { onChange: () => void }) {
   const [offset, setOffset] = useState(0)
   const monday = useMemo(() => addDays(mondayOf(new Date()), offset * 7), [offset])

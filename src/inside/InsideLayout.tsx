@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { DAY_PART_ICON, DAY_PART_LABEL, SHIFT_ROLE_LABEL } from '../types'
 import type { Checklist } from '../types'
-import { DailyPage, ProblemsPage, RoutePage, SummaryPage } from './pages'
+import { ProblemsPage, RoutePage, SummaryPage } from './pages'
 import { DAILY_SECTION, pct } from './utils'
 import NotificationBell from '../notify/NotificationBell'
 import RatingPage from '../rating/RatingPage'
@@ -16,8 +16,8 @@ import { useCaps } from '../sched/useCaps'
 import './inside.css'
 import NoteBoard from '../board/NoteBoard'
 import { SHOW_TIMETRACKER } from '../sched/flags'
-import RegulationsWeek from './RegulationsWeek'
 import ShiftExtras from './ShiftExtras'
+import DailyScreen from './DailyScreen'
 
 type SectionId = 'route' | 'sheet' | 'daily' | 'problems' | 'inventory' | 'myschedule' | 'rating' | 'summary' | 'shelf' | 'sched'
 
@@ -216,12 +216,7 @@ export default function InsideLayout({ onOpenSettings }: { onOpenSettings?: () =
           <>
             {current.id === 'route' && <RoutePage {...pageProps} />}
             {current.id === 'sheet' && <ShiftSheetPage />}
-            {current.id === 'daily' && (
-              <>
-                <DailyPage {...pageProps} />
-                <RegulationsWeek dayPart={shift.dayPart} />
-              </>
-            )}
+            {current.id === 'daily' && <DailyScreen {...pageProps} />}
             {current.id === 'problems' && <ProblemsPage {...pageProps} />}
             {current.id === 'inventory' && <InventoryPage />}
             {current.id === 'myschedule' && <MySchedulePage />}

@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../auth'
 import { extApi } from '../ext/api'
 import type { ExtBranch } from '../ext/api'
-import SchedulePage from '../schedule/SchedulePage'
 import OverviewTab from './OverviewTab'
 import ScheduleImport from './ScheduleImport'
-// Скрыто (закомментировано, чтобы не потерять): аналитика загрузки и вкладка «Сотрудники» из Таймтрекера
+// Скрыто (закомментировано, чтобы не потерять): аналитика загрузки и вкладка «Сотрудники» из  а
 // import AnalyticsTab from './AnalyticsTab'
 // import WeekView from './WeekView'
 // import { AccessTab, RequestsTab } from './StaffAdmin'
@@ -17,7 +16,7 @@ import ManagerSchedulePage from '../manager-schedule/ManagerSchedulePage'
 
 // type Top = 'overview' | 'analytics' | 'managers' | 'staff'
 // type Sub = 'requests' | 'week' | 'people' | 'settings'
-type Top = 'overview' | 'managers' | 'mgrsched'
+type Top = 'overview' | 'mgrsched'
 
 const BRANCH_KEY = 'sched.branch'
 const readBranch = () => { try { const v = localStorage.getItem(BRANCH_KEY); return v ? Number(v) : null } catch { return null } }
@@ -29,7 +28,7 @@ function NeedBranch() {
 
 /**
  * Страница «Расписание» для супер-админа и директора.
- *  - «Общий график»: менеджеры по данным Таймтрекера (кто пришёл, кто не вышел);
+ *  - «Общий график»: менеджеры по данным  а (кто пришёл, кто не вышел);
  *  - «Менеджеры»: составление и публикация графика менеджеров.
  * Вкладки «Аналитика» и «Сотрудники» скрыты (код ниже закомментирован); сервер остался как был.
  * Доступ всё равно проверяет сервер.
@@ -52,7 +51,7 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
   const [syncKey, setSyncKey] = useState(0)
   const [importing, setImporting] = useState(false)
 
-  /** Подтянуть график из Таймтрекера (этот и следующий месяц) и перерисовать составление графика. */
+  /** Подтянуть график из  а (этот и следующий месяц) и перерисовать составление графика. */
   async function syncTt() {
     setSyncing(true)
     setSyncMsg('')
@@ -81,7 +80,6 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
 
   const tabs: { id: Top; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Общий график' },
-    { id: 'managers', label: 'Менеджеры (ТТ)' },
     { id: 'mgrsched', label: 'График менеджеров' },
   ]
   const current: Top = top && tabs.some((t) => t.id === top) ? top : tabs[0].id
@@ -100,7 +98,7 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
             </button>
           ))}
         </div>
-        {current !== 'managers' && (
+        {current === 'overview' && (
           <select className="ext-input hub-branch" value={branch ?? ''} aria-label="Ресторан"
             onChange={(e) => { const v = e.target.value ? Number(e.target.value) : null; setBranch(v); saveBranch(v) }}>
             {/* {current === 'staff' && sub === 'requests' && <option value="">Все рестораны</option>} */}
@@ -109,24 +107,20 @@ export default function ScheduleHub(_props: { onChanged?: () => void }) {
         )}
       </div>
 
-      {current === 'overview' && (branch == null ? <NeedBranch /> : <OverviewTab key={syncKey} branchId={branch} canEdit />)}
-
-      {/* {current === 'analytics' && (branch == null ? <NeedBranch /> : <AnalyticsTab branchId={branch} />)} */}
-
-      {current === 'managers' && (
+      {current === 'overview' && (
         <>
           <div className="sch-bar" style={{ alignItems: 'center' }}>
-            <button className="ext-btn" disabled={syncing} onClick={() => void syncTt()}>{syncing ? 'Обновляю…' : '🔄 Обновить из Таймтрекера'}</button>
             <button className="ext-btn primary" disabled={branch == null} title={branch == null ? 'Сначала выберите ресторан справа вверху' : ''} onClick={() => setImporting(true)}>📥 Загрузить из Excel</button>
             {syncMsg && <span className="muted-s">{syncMsg}</span>}
           </div>
           {importing && branch != null && (
             <ScheduleImport branchId={branch} onClose={() => setImporting(false)} onDone={() => setSyncKey((k) => k + 1)} />
           )}
-          <SchedulePage key={syncKey} />
+          {branch == null ? <NeedBranch /> : <OverviewTab key={syncKey} branchId={branch} canEdit />}
         </>
       )}
-      {current === 'mgrsched' && <ManagerSchedulePage />}
+
+      {current === 'mgrsched' && <ManagerSchedulePage key={syncKey} />}
 
       {/* Вкладка «Сотрудники» (заявки, график недели, люди и обучение, настройки) скрыта:
       {current === 'staff' && (

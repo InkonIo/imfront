@@ -26,7 +26,7 @@ const ALL_SECTIONS: { id: SectionId; icon: string; label: string; hint: string }
   { id: 'review', icon: '🔎', label: 'Проверка', hint: 'Подтверждение пунктов и разбор флагов по всем точкам' },
   { id: 'insights', icon: '📊', label: 'Аналитика', hint: 'Метрики менеджеров, смены, инвентаризации, сравнение' },
   { id: 'shelf', icon: '🧊', label: 'Сроки хранения', hint: 'Сколько и где хранится продукт: поиск, зоны, редактирование' },
-  { id: 'staff', icon: '👥', label: 'Сотрудники', hint: 'Список из Таймтрекера: синхронизация, поиск, филиалы' },
+  { id: 'staff', icon: '👥', label: 'Сотрудники', hint: 'Список: синхронизация, поиск, филиалы' },
   { id: 'schedule', icon: '🗓', label: SHOW_TIMETRACKER ? 'Расписание' : 'График менеджеров', hint: SHOW_TIMETRACKER ? 'Общий график, менеджеры, сотрудники: заявки, автосборка недели, настройки' : 'Расписание менеджеров: составить, опубликовать, отпуска' },
   { id: 'audit', icon: '📜', label: 'Аудит', hint: 'Кто, что и когда делал: смены, пункты, фото' },
   { id: 'templates', icon: '🧭', label: 'Маршруты', hint: 'Чек-листы для ролей: пункты, время, фото, инструкции' },
@@ -40,7 +40,7 @@ const ALL_SECTIONS: { id: SectionId; icon: string; label: string; hint: string }
   { id: 'workflow', icon: '🧩', label: 'Workflow директора', hint: 'Ежедневные, еженедельные, ежемесячные, квартальные и годовые задачи директора с отметками' },
 ]
 
-// Таймтрекер скрыт: раздел «Сотрудники» (список из ТТ) не показываем
+//   скрыт: раздел «Сотрудники» (список из ТТ) не показываем
 const SECTIONS = ALL_SECTIONS.filter((s) => SHOW_TIMETRACKER || s.id !== 'staff')
 
 export default function AdminLayout({ onExit }: { onExit: () => void }) {

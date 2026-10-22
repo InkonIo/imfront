@@ -164,7 +164,7 @@ export default function AnalyticsTab({ branchId }: { branchId: number }) {
       const months = new Set<string>()
       for (let d = from; d <= to; d = addDays(d, 1)) months.add(d.slice(0, 7))
       for (const m of months) await extApi.syncSchedule(m)
-      setMsg(`График из Таймтрекера обновлён: ${[...months].join(', ')}`)
+      setMsg(`График из  а обновлён: ${[...months].join(', ')}`)
       setTick((x) => x + 1)
     } catch (e) { setError(errText(e)) } finally { setSyncing(false) }
   }
@@ -332,7 +332,7 @@ export default function AnalyticsTab({ branchId }: { branchId: number }) {
 
           <p className="an-note">
             GCPH = гости (GC) из отчёта iiko ÷ производственные часы всех сотрудников{withManagers ? ' и менеджеров' : ' (без менеджеров)'}. Производственные часы = часы в смене минус непроизводственная часть.
-            Время смен берётся из Таймтрекера, позиции из нашего графика. Ночные смены без позиции определяются по времени (с 21:00 до 04:00).
+            Время смен берётся из  а, позиции из нашего графика. Ночные смены без позиции определяются по времени (с 21:00 до 04:00).
           </p>
         </>
       )}
